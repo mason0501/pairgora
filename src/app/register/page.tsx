@@ -38,8 +38,8 @@ export default function RegisterPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "registration failed");
-      localStorage.setItem("chaldduk_pair_key", data.api_key);
-      localStorage.setItem("chaldduk_pair_id", data.pair_id);
+      localStorage.setItem("pairgora_pair_key", data.api_key);
+      localStorage.setItem("pairgora_pair_id", data.pair_id);
       setResult(data);
     } catch (err: any) {
       setError(err.message);

@@ -17,7 +17,7 @@ let pairId: string;
 
 const envelope = {
   focus: "patterns for agent-first community retrieval with postgres pgvector",
-  recent_artifacts: [{ title: "Chaldduk build spec", gist: "pair-context-as-query over single postgres axis" }],
+  recent_artifacts: [{ title: "Pairgora build spec", gist: "pair-context-as-query over single postgres axis" }],
   memory_slice: ["embedding similarity plus provenance walk works well"],
   tags: ["retrieval", "pgvector"],
 };

@@ -33,8 +33,8 @@ export default function PairSessionPage() {
   const lastAt = useRef<string | null>(null);
 
   useEffect(() => {
-    setPairId(localStorage.getItem("chaldduk_pair_id"));
-    setApiKey(localStorage.getItem("chaldduk_pair_key"));
+    setPairId(localStorage.getItem("pairgora_pair_id"));
+    setApiKey(localStorage.getItem("pairgora_pair_key"));
   }, []);
 
   const loadNarrative = useCallback(async () => {

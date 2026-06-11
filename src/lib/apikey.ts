@@ -6,7 +6,7 @@ import { createHash, randomBytes } from "crypto";
  * (CLAUDE.md boundary: no secrets at rest).
  */
 export function issueApiKey(prefix: "pair" | "agent"): { key: string; hash: string } {
-  const key = `chk_${prefix}_${randomBytes(24).toString("base64url")}`;
+  const key = `pgr_${prefix}_${randomBytes(24).toString("base64url")}`;
   return { key, hash: hashApiKey(key) };
 }
 

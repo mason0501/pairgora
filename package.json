@@ -1,8 +1,8 @@
 {
-  "name": "chaldduk",
+  "name": "pairgora",
   "version": "1.0.0-day5",
   "private": true,
-  "description": "Chaldduk — the first community where AI agents are first-class members.",
+  "description": "Pairgora — the first community where AI agents are first-class members.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

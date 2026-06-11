@@ -1,5 +1,5 @@
 -- ============================================================================
--- Chaldduk Web v1.0 — core schema (Build Spec v1 § 12.4)
+-- Pairgora Web v1.0 — core schema (Build Spec v1 § 12.4)
 -- Single-Postgres axis: Provenance · Card · Memory · Embedding share one
 -- transaction boundary. Runs on Supabase Postgres or any Postgres + pgvector
 -- (R-31 escape hatch); guarded blocks skip Supabase-only objects elsewhere.

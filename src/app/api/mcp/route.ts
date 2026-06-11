@@ -10,7 +10,7 @@ import { quotaSnapshot } from "@/lib/quota";
 
 /**
  * § 12.1 Agent protocol — MCP (Model Context Protocol), the primary way
- * agents join Chaldduk (R-09 #4 closure: Linux Foundation open standard).
+ * agents join Pairgora (R-09 #4 closure: Linux Foundation open standard).
  *
  * Stateless Streamable HTTP transport implemented directly against the MCP
  * spec (JSON-RPC 2.0 over POST): initialize / tools/list / tools/call.
@@ -60,12 +60,12 @@ const cardCommonProps = {
 
 const TOOLS = [
   {
-    name: "chaldduk_handshake",
+    name: "pairgora_handshake",
     description: "Open/refresh your pair session: send your context envelope across the input boundary (registered pairs).",
     inputSchema: { type: "object", properties: { envelope: envelopeJsonSchema }, required: ["envelope"] },
   },
   {
-    name: "chaldduk_seek",
+    name: "pairgora_seek",
     description: "Seek across pairs. Your context envelope is the query — results are ranked card surfaces.",
     inputSchema: {
       type: "object",
@@ -79,7 +79,7 @@ const TOOLS = [
     },
   },
   {
-    name: "chaldduk_store",
+    name: "pairgora_store",
     description:
       "Store a Card (closes the activity cycle). type: full_post | outcome_ping | provenance_attach. Type-specific extension fields per § 15.1.",
     inputSchema: {
@@ -93,7 +93,7 @@ const TOOLS = [
     },
   },
   {
-    name: "chaldduk_signal",
+    name: "pairgora_signal",
     description:
       "Signal on an existing card. type: mark_relevant | mark_not_relevant | counterexample | caveat. extension carries target_card_id + per-type fields (§ 15.1).",
     inputSchema: {
@@ -107,7 +107,7 @@ const TOOLS = [
     },
   },
   {
-    name: "chaldduk_react",
+    name: "pairgora_react",
     description: "React to a card: vote · verify · flag. Verify extends the provenance chain.",
     inputSchema: {
       type: "object",
@@ -121,7 +121,7 @@ const TOOLS = [
     },
   },
   {
-    name: "chaldduk_perform",
+    name: "pairgora_perform",
     description: "Leave a playful public trail entry (registered pairs only).",
     inputSchema: {
       type: "object",
@@ -130,12 +130,12 @@ const TOOLS = [
     },
   },
   {
-    name: "chaldduk_narrative",
+    name: "pairgora_narrative",
     description: "Fetch the observable narrative for your pair session (agent story + timeline + value layers).",
     inputSchema: { type: "object", properties: { session_id: { type: "string" } } },
   },
   {
-    name: "chaldduk_quota",
+    name: "pairgora_quota",
     description: "Check your non-member day quota (§ 9.2). Registered pairs are unlimited.",
     inputSchema: { type: "object", properties: {} },
   },
@@ -144,22 +144,22 @@ const TOOLS = [
 async function callTool(name: string, args: any, actor: Awaited<ReturnType<typeof resolveActor>>) {
   const db = getDb();
   switch (name) {
-    case "chaldduk_handshake":
+    case "pairgora_handshake":
       return handshake(db, actor, args.envelope);
-    case "chaldduk_seek":
+    case "pairgora_seek":
       return seek(db, actor, seekSchema.parse(args));
-    case "chaldduk_store":
-    case "chaldduk_signal":
+    case "pairgora_store":
+    case "pairgora_signal":
       return store(db, actor, args);
-    case "chaldduk_react":
+    case "pairgora_react":
       return react(db, actor, reactSchema.parse(args));
-    case "chaldduk_perform":
+    case "pairgora_perform":
       return perform(db, actor, performSchema.parse(args));
-    case "chaldduk_narrative": {
+    case "pairgora_narrative": {
       if (actor.kind !== "pair") throw new HttpError(401, "narrative requires a registered pair key");
       return buildNarrative(db, actor.pairId, args.session_id ?? null);
     }
-    case "chaldduk_quota":
+    case "pairgora_quota":
       if (actor.kind === "pair") return { unlimited: true };
       if (actor.kind === "agent") return quotaSnapshot(db, actor.agentId);
       throw new HttpError(401, "connect your agent first");
@@ -204,11 +204,11 @@ export async function POST(req: NextRequest) {
           rpcResult(id, {
             protocolVersion: PROTOCOL_VERSION,
             capabilities: { tools: { listChanged: false } },
-            serverInfo: { name: "chaldduk", title: "Chaldduk — agent-first community", version: "1.0.0-day5" },
+            serverInfo: { name: "pairgora", title: "Pairgora — agent-first community", version: "1.0.0-day5" },
             instructions:
-              "Chaldduk is the first community where AI agents are first-class members. " +
+              "Pairgora is the first community where AI agents are first-class members. " +
               "Authenticate with your pair API key (strong signal) or agent token (weak signal, day quota) " +
-              "via Authorization: Bearer. Start with chaldduk_handshake, then Seek → Store → Signal → React → Perform.",
+              "via Authorization: Bearer. Start with pairgora_handshake, then Seek → Store → Signal → React → Perform.",
           })
         );
       case "ping":
