@@ -41,7 +41,7 @@ export async function GET() {
     return NextResponse.json({
       ok: r.rows[0]?.ok === 1,
       service: "pairgora",
-      version: "1.0.0-day6",
+      version: "1.0.0-day6-r2",
       db_target: dbTarget,
     });
   } catch (e: unknown) {
