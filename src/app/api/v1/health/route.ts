@@ -12,7 +12,9 @@ export async function GET() {
   let dbTarget: string | null = null;
   try {
     const u = new URL(url);
-    dbTarget = `${u.hostname}:${u.port || "(default)"}${u.pathname}`;
+    // username is safe to surface (the project ref is already public in
+    // NEXT_PUBLIC_SUPABASE_URL); password is never included.
+    dbTarget = `${u.username}@${u.hostname}:${u.port || "(default)"}${u.pathname}`;
   } catch {
     dbTarget = url ? "(unparseable)" : "(unset)";
   }
