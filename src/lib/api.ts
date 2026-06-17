@@ -39,15 +39,7 @@ export function withApi(
         return NextResponse.json({ error: "validation failed", detail: e.issues }, { status: 400 });
       }
       console.error("[api]", e);
-      // TEMP diagnostic (Day 6 prod bring-up): surface error shape, no secrets
-      const err = e as { message?: string; code?: string; status?: number; name?: string };
-      return NextResponse.json(
-        {
-          error: "internal error",
-          _debug: { name: err?.name ?? null, code: err?.code ?? err?.status ?? null, message: String(err?.message ?? e).slice(0, 240) },
-        },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "internal error" }, { status: 500 });
     }
   };
 }
