@@ -10,11 +10,27 @@ import { getDb } from "@/lib/db";
 export async function GET() {
   const url = process.env.DATABASE_URL ?? "";
   let dbTarget: string | null = null;
+  // Password SHAPE only — never the value. Distinguishes placeholder /
+  // encoding / typo as the cause of 28P01.
+  let pwShape: Record<string, unknown> = {};
   try {
     const u = new URL(url);
-    // username is safe to surface (the project ref is already public in
-    // NEXT_PUBLIC_SUPABASE_URL); password is never included.
     dbTarget = `${u.username}@${u.hostname}:${u.port || "(default)"}${u.pathname}`;
+    const pw = u.password;
+    let decodedLen = -1;
+    try {
+      decodedLen = decodeURIComponent(pw).length;
+    } catch {
+      decodedLen = -2; // malformed percent-encoding
+    }
+    pwShape = {
+      len: pw.length,
+      decoded_len: decodedLen,
+      has_pct: pw.includes("%"),
+      looks_placeholder: /[[\]{}]|your[-_]?password/i.test(pw),
+      nonalnum: (pw.match(/[^a-zA-Z0-9]/g) ?? []).length,
+      empty: pw.length === 0,
+    };
   } catch {
     dbTarget = url ? "(unparseable)" : "(unset)";
   }
@@ -35,6 +51,7 @@ export async function GET() {
         ok: false,
         db_error: { code: err?.code ?? null, message: String(err?.message ?? e).slice(0, 200) },
         db_target: dbTarget,
+        pw_shape: pwShape,
       },
       { status: 503 }
     );
