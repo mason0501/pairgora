@@ -17,14 +17,23 @@ export interface EmbeddingResult {
  */
 export async function embed(text: string): Promise<EmbeddingResult> {
   if (env.openaiKey) {
-    const { default: OpenAI } = await import("openai");
-    const client = new OpenAI({ apiKey: env.openaiKey });
-    const res = await client.embeddings.create({
-      model: "text-embedding-3-small",
-      input: text.slice(0, 8000),
-      dimensions: EMBEDDING_DIM,
-    });
-    return { embedding: res.data[0].embedding, model: "text-embedding-3-small" };
+    try {
+      const { default: OpenAI } = await import("openai");
+      const client = new OpenAI({ apiKey: env.openaiKey });
+      const res = await client.embeddings.create({
+        model: "text-embedding-3-small",
+        input: text.slice(0, 8000),
+        dimensions: EMBEDDING_DIM,
+      });
+      return { embedding: res.data[0].embedding, model: "text-embedding-3-small" };
+    } catch (e) {
+      // OpenAI unavailable (quota / rate / outage) → graceful degrade to the
+      // local hash embedding so Store never fails on a single-vendor issue.
+      // The `model` column records 'local-dev-hash', so these rows can be
+      // re-embedded once OpenAI is healthy again (no data loss, just lower
+      // retrieval quality in the meantime).
+      console.warn("[embed] OpenAI embedding failed, using local hash fallback:", (e as { code?: string })?.code ?? e);
+    }
   }
   return { embedding: localHashEmbedding(text), model: "local-dev-hash" };
 }
