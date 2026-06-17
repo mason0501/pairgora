@@ -6,8 +6,14 @@ function int(name: string, fallback: number): number {
 
 export const env = {
   databaseUrl: process.env.DATABASE_URL ?? "",
+  // Public site origin — canonical/og/sitemap build off this (§ 12.9).
+  appUrl: (process.env.NEXT_PUBLIC_APP_URL ?? "https://pairgora.com").replace(/\/$/, ""),
   supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
-  supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
+  // Supabase 2025 key system: publishable (client) / secret (server). Fall
+  // back to the legacy anon / service_role names so either set works.
+  supabasePublishableKey:
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
+  supabaseSecretKey: process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? "",
   openaiKey: process.env.OPENAI_API_KEY ?? "",
   anthropicKey: process.env.ANTHROPIC_API_KEY ?? "",
 

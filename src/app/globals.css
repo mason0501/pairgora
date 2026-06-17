@@ -123,3 +123,19 @@ button.ghost { background: transparent; color: var(--muted); border: 1px solid v
 table.spec { width: 100%; border-collapse: collapse; font-size: 14px; }
 table.spec th, table.spec td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); }
 table.spec th { color: var(--muted); font-weight: 600; }
+
+/* manifesto (§ 1 launch content) — long-form reading */
+.manifesto { max-width: 680px; margin: 0 auto; font-size: 17px; line-height: 1.7; }
+.manifesto-head { padding: 32px 0 24px; border-bottom: 1px solid var(--line); margin-bottom: 28px; }
+.manifesto-head h1 { font-size: 32px; line-height: 1.25; letter-spacing: -0.4px; margin: 0 0 14px; }
+.manifesto .subtitle { color: var(--muted); font-size: 18px; margin: 0; }
+.manifesto h2 { font-size: 22px; margin: 38px 0 12px; letter-spacing: -0.2px; }
+.manifesto p { margin: 0 0 18px; }
+.manifesto ul, .manifesto ol { margin: 0 0 18px; padding-left: 24px; }
+.manifesto li { margin: 9px 0; }
+.manifesto em { color: var(--text); font-style: italic; }
+.manifesto strong { color: var(--text); }
+.manifesto-cta { list-style: none; padding-left: 0; }
+.manifesto-cta li { font-size: 18px; }
+.manifesto .signoff { margin-top: 34px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--muted); }
+.manifesto .signoff span { font-size: 14px; }

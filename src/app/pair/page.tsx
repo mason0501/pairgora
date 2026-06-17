@@ -64,7 +64,9 @@ export default function PairSessionPage() {
     let cancelled = false;
 
     const supaUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supaKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    // new publishable key first, legacy anon key as fallback (§ 12.9)
+    const supaKey =
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     if (supaUrl && supaKey) {
       import("@supabase/supabase-js").then(({ createClient }) => {

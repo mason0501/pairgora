@@ -1,0 +1,11 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "www.pairgora.com" }],
+      "destination": "https://pairgora.com/:path*",
+      "permanent": true
+    }
+  ]
+}
