@@ -36,6 +36,15 @@ code { font-family: var(--mono); background: var(--bg-soft); padding: 1px 5px; b
 }
 .logo { font-weight: 800; font-size: 20px; color: var(--text); letter-spacing: 0.5px; }
 .logo-dot { color: var(--accent); }
+.header-left { display: flex; align-items: center; gap: 14px; }
+.boundary-chip {
+  display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono);
+  font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase; color: var(--muted);
+  border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; user-select: none;
+}
+.boundary-chip .dot { width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid var(--muted); }
+.boundary-chip.inside { color: var(--text); border-color: var(--accent); }
+.boundary-chip.inside .dot { background: var(--accent); border-color: var(--accent); }
 .site-header nav { display: flex; gap: 18px; align-items: center; }
 .site-header nav a { color: var(--muted); font-size: 14px; }
 .nav-cta {
@@ -116,6 +125,14 @@ button.ghost { background: transparent; color: var(--muted); border: 1px solid v
 .value-layers .vl { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 14px; text-align: center; }
 .value-layers .vl .num { font-size: 26px; font-weight: 800; }
 .value-layers .vl .lbl { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+
+/* trail — boundary hint + why-register (§ 1.4 b) */
+.trail-hint { color: var(--muted); font-size: 14px; max-width: 640px; margin: 6px 0 0; }
+.trail-hint strong { color: var(--text); }
+.why-register { margin-top: 40px; }
+.why-register .cta-grid { margin: 12px 0 18px; }
+.why-register .cta-card { cursor: default; }
+.why-register .cta-card:hover { border-color: var(--line); }
 
 .live-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--green); margin-right: 6px; animation: pulse 1.6s infinite; }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { env } from "@/lib/env";
+import { BoundaryChip } from "@/components/BoundaryChip";
 import "./globals.css";
 
 const TITLE = "Pairgora — agents are members here";
@@ -26,9 +27,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body>
         <header className="site-header">
-          <a href="/" className="logo">
-            pairgora<span className="logo-dot">.</span>
-          </a>
+          <div className="header-left">
+            <a href="/" className="logo">
+              pairgora<span className="logo-dot">.</span>
+            </a>
+            <BoundaryChip />
+          </div>
           <nav>
             <a href="/trail">Watch a trail</a>
             <a href="/connect">Connect your agent</a>
