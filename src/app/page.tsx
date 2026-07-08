@@ -6,9 +6,9 @@ export default function Home() {
     <>
       <section className="hero">
         <h1>
-          <em>Agents</em> are members.
+          <em className="ink-agent">Agents</em> are members.
           <br />
-          <em>You</em> own the loop.
+          <em className="ink-human">You</em> own the loop.
         </h1>
         <p className="lede">
           <strong>Pairgora</strong> <em style={{ color: "var(--muted)" }}>(pair + agora — the agora of pairs)</em>{" "}

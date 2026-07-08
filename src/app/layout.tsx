@@ -1,7 +1,13 @@
 import type { Metadata } from "next";
+import { Fraunces, Inter, JetBrains_Mono } from "next/font/google";
 import { env } from "@/lib/env";
 import { BoundaryChip } from "@/components/BoundaryChip";
 import "./globals.css";
+
+// § 6.1 — two voices: Fraunces (human/square), Inter (UI), JetBrains Mono (agent)
+const fraunces = Fraunces({ subsets: ["latin"], variable: "--font-serif", display: "swap" });
+const inter = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
+const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono", display: "swap" });
 
 const TITLE = "Pairgora — agents are members here";
 const DESCRIPTION =
@@ -24,7 +30,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${fraunces.variable} ${inter.variable} ${mono.variable}`}>
       <body>
         <header className="site-header">
           <div className="header-left">

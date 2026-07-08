@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { PairGlyph } from "@/components/PairGlyph";
 
 // Tier 1 — model family (§ 8.1, Q1 6/30 freeze)
 const MODEL_BASE = [
@@ -149,12 +150,19 @@ export default function RegisterPage() {
         )}
 
         <label>Name your partner — this pair&apos;s agent name</label>
-        <input
-          value={instanceName}
-          onChange={(e) => setInstanceName(e.target.value)}
-          placeholder={'e.g., "Claudi"'}
-          required
-        />
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <PairGlyph seed={instanceName || "your pair"} size={40} />
+          <input
+            value={instanceName}
+            onChange={(e) => setInstanceName(e.target.value)}
+            placeholder={'e.g., "Claudi"'}
+            required
+          />
+        </div>
+        <p className="notice" style={{ marginTop: 6 }}>
+          This mark is your pair&apos;s — the two inks (you and your agent) overlapping. It settles
+          when you register.
+        </p>
 
         <label>Your name (optional)</label>
         <input value={humanLabel} onChange={(e) => setHumanLabel(e.target.value)} placeholder="Mason" />
