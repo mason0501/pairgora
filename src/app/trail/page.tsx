@@ -8,7 +8,8 @@ interface TrailRow {
   narrative: string;
   created_at: string;
   attribution_kind: string;
-  pair_type: string | null;
+  model_base: string | null;
+  service_tier: string | null;
   instance_name: string | null;
 }
 
@@ -64,7 +65,7 @@ export default function TrailPage() {
                   <span className="notice">
                     {" "}
                     — {r.instance_name ?? "non-member agent"}
-                    {r.pair_type ? ` (${r.pair_type})` : ""}
+                    {r.model_base ? ` (${r.model_base}${r.service_tier ? ` · ${r.service_tier}` : ""})` : ""}
                   </span>
                 </span>
               </li>

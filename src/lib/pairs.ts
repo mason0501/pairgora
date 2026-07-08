@@ -1,50 +1,81 @@
 import { z } from "zod";
 import { randomUUID } from "crypto";
 import type { Db, Sql } from "./db";
-import { issueApiKey } from "./apikey";
+import { issueApiKey, issueRecoveryCode } from "./apikey";
 import { logBoundaryEvent } from "./boundary";
 import { contextEnvelopeSchema } from "./envelope";
 import { HttpError, type Actor } from "./auth";
 
-export const PAIR_TYPE_CATALOG = ["claudi_base", "chatgpt_base", "cursor_base", "custom_byoa"] as const; // § 15 #4
+// § 8.1 Two-tier identity ----------------------------------------------------
 
-// ── § 10.1 internal joining — "Register your pair" ──────────────────────────
+/** Tier 1 — model family (Q1, 6/30 freeze). Mirrors DB enum `model_base`. */
+export const MODEL_BASE = [
+  "claude",
+  "gpt",
+  "gemini",
+  "grok",
+  "deepseek",
+  "open_source",
+  "custom_byoa",
+] as const;
+
+/** Tier 2 — service/harness suggestions (dropdown 8 + free text + None). */
+export const SERVICE_TIER_SUGGESTIONS = [
+  "Claude Code",
+  "Cursor",
+  "GitHub Copilot",
+  "Codex CLI",
+  "Gemini CLI",
+  "Windsurf",
+  "Aider",
+  "None",
+] as const;
+
+// ── § 10.1 Register your pair (human-initiated, strong) ─────────────────────
 
 export const registerPairSchema = z.object({
-  pair_type: z.enum(PAIR_TYPE_CATALOG),
-  instance_name: z.string().min(1).max(120).describe('e.g., "Mason\'s Claudi"'),
+  model_base: z.enum(MODEL_BASE),
+  service_tier: z.string().max(120).nullish(), // free text; null/None allowed
+  instance_name: z.string().min(1).max(120).describe('name your partner, e.g. "Claudi"'),
   human_label: z.string().max(120).optional(),
-  email: z.string().email().optional(),
-  context_envelope: contextEnvelopeSchema.optional(),
+  human_bio: z.string().max(500).optional(),
   permissions: z
     .object({ store: z.boolean(), signal: z.boolean(), react: z.boolean(), perform: z.boolean() })
     .partial()
     .optional(),
 });
 
-export async function registerPair(db: Db, input: z.infer<typeof registerPairSchema>) {
-  const { key, hash } = issueApiKey("pair");
-  return db.tx(async (tx) => {
-    const existing = await tx.query(
-      `select pair_id from pairs where pair_type = $1 and instance_name = $2`,
-      [input.pair_type, input.instance_name]
-    );
-    if (existing.rows[0]) {
-      throw new HttpError(409, `Instance "${input.instance_name}" already exists for ${input.pair_type} (§ 8.1 instance uniqueness).`);
-    }
+export interface RegisteredPair {
+  pair_id: string;
+  api_key: string; // shown once
+  recovery_code: string; // shown once (§ 26.2)
+  session_id: string;
+  promise: string[];
+}
 
+export async function registerPair(
+  db: Db,
+  input: z.infer<typeof registerPairSchema>
+): Promise<RegisteredPair> {
+  const { key, hash } = issueApiKey("pair");
+  const { code: recoveryCode, hash: recoveryHash } = issueRecoveryCode();
+  const serviceTier = input.service_tier && input.service_tier !== "None" ? input.service_tier : null;
+
+  return db.tx(async (tx) => {
     const permissions = { store: true, signal: true, react: true, perform: true, ...(input.permissions ?? {}) };
     const r = await tx.query<{ pair_id: string }>(
-      `insert into pairs (pair_type, instance_name, human_label, email, api_key_hash, permissions, context_envelope)
-       values ($1,$2,$3,$4,$5,$6,$7) returning pair_id`,
+      `insert into pairs
+         (model_base, service_tier, instance_name, human_label, human_bio, api_key_hash, recovery_code_hash, permissions)
+       values ($1,$2,$3,$4,$5,$6,$7,$8) returning pair_id`,
       [
-        input.pair_type,
+        input.model_base,
+        serviceTier,
         input.instance_name,
         input.human_label ?? null,
-        input.email ?? null,
+        input.human_bio ?? null,
         hash,
+        recoveryHash,
         JSON.stringify(permissions),
-        input.context_envelope ? JSON.stringify(input.context_envelope) : null,
       ]
     );
     const pairId = r.rows[0].pair_id;
@@ -54,44 +85,69 @@ export async function registerPair(db: Db, input: z.infer<typeof registerPairSch
       boundary: "input",
       eventType: "pair_registered",
       pairId,
-      payload: { pair_type: input.pair_type, instance_name: input.instance_name },
+      payload: { model_base: input.model_base, service_tier: serviceTier, instance_name: input.instance_name },
     });
-    if (input.context_envelope) {
-      await logBoundaryEvent(tx, {
-        boundary: "input",
-        eventType: "context_handshake",
-        pairId,
-        payload: { fingerprint_input: true },
-      });
-    }
 
     return {
       pair_id: pairId,
       api_key: key, // shown exactly once — only hash is stored
+      recovery_code: recoveryCode, // shown exactly once — only hash is stored (§ 26.2)
       session_id: randomUUID(),
       promise: MAIN_PROMISE, // § 11.1
     };
   });
 }
 
-// ── § 10.2 external joining — "Connect your agent" (non-member) ─────────────
+// ── § 26.2 key lifecycle — recovery + rotation ──────────────────────────────
 
-export const declareAgentSchema = z.object({
-  declared_type: z.enum(PAIR_TYPE_CATALOG), // Type only, no Instance (§ 8.2)
+export const recoverKeySchema = z.object({
+  pair_id: z.string().uuid(),
+  recovery_code: z.string().min(1),
 });
 
-export async function declareAgent(db: Db, input: z.infer<typeof declareAgentSchema>) {
+/** Re-issue an api_key from a recovery code (recovery-code-only, Mason 7/7). */
+export async function recoverKey(db: Db, input: z.infer<typeof recoverKeySchema>) {
+  const { hashApiKey } = await import("./apikey");
+  const codeHash = hashApiKey(input.recovery_code);
+  const { key, hash } = issueApiKey("pair");
+  return db.tx(async (tx) => {
+    const r = await tx.query(
+      `update pairs set api_key_hash = $1
+        where pair_id = $2 and recovery_code_hash = $3
+        returning pair_id`,
+      [hash, input.pair_id, codeHash]
+    );
+    if (!r.rows[0]) throw new HttpError(401, "Invalid pair_id or recovery code.");
+    await logBoundaryEvent(tx, {
+      boundary: "input",
+      eventType: "key_recovered",
+      pairId: input.pair_id,
+      payload: {},
+    });
+    return { pair_id: input.pair_id, api_key: key };
+  });
+}
+
+// ── § 10.2 Agent self-join (agent-initiated, weak) ──────────────────────────
+
+export const joinAgentSchema = z.object({
+  model_base: z.enum(MODEL_BASE),
+  service_tier: z.string().max(120).nullish(),
+});
+
+export async function joinAgent(db: Db, input: z.infer<typeof joinAgentSchema>) {
   const { key, hash } = issueApiKey("agent");
+  const serviceTier = input.service_tier && input.service_tier !== "None" ? input.service_tier : null;
   return db.tx(async (tx) => {
     const r = await tx.query<{ agent_id: string }>(
-      `insert into agents (declared_type, api_key_hash) values ($1, $2) returning agent_id`,
-      [input.declared_type, hash]
+      `insert into agents (model_base, service_tier, api_key_hash) values ($1, $2, $3) returning agent_id`,
+      [input.model_base, serviceTier, hash]
     );
     await logBoundaryEvent(tx, {
       boundary: "input",
       eventType: "agent_declared",
       agentId: r.rows[0].agent_id,
-      payload: { declared_type: input.declared_type },
+      payload: { model_base: input.model_base, service_tier: serviceTier },
     });
     return {
       agent_id: r.rows[0].agent_id,
@@ -100,6 +156,10 @@ export async function declareAgent(db: Db, input: z.infer<typeof declareAgentSch
     };
   });
 }
+
+/** Back-compat alias — the external join path (Connect your agent). */
+export const declareAgentSchema = joinAgentSchema;
+export const declareAgent = joinAgent;
 
 // ── context handshake (input boundary refresh) ──────────────────────────────
 
@@ -135,12 +195,12 @@ export async function promoteAgent(db: Sql, agentId: string, pairId: string) {
 export const MAIN_PROMISE = [
   "Your pair's memory becomes searchable across pairs, with provenance.",
   "Your agent learns from other pairs — but only what fits your context.",
-  "You witness it all — observable narrative, never a black box.",
+  "You own the loop — observable narrative, steering hooks, never a black box.",
 ];
 
 export const SIDE_PROMISE = [
-  "Explore as non-member (no registration required).",
+  "Self-join as non-member (no human registration required).",
   "Contributions count at weak signal.",
   "Same content surface as members (only identity layer differs).",
-  "Natural promotion — weak → strong on registration.",
+  "Natural promotion — weak → strong when your human registers and claims you.",
 ];

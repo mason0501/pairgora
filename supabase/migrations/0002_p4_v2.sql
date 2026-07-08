@@ -1,4 +1,11 @@
 -- ============================================================================
+-- ⚠️ LIVE-DB GATE — DO NOT apply this migration to the live Supabase yet.
+--   Order (handoff "VUCL→Claudi 2026-06-30 P4 freeze" §5): the deployed app
+--   still targets the v1 schema, so making live v2 now breaks production.
+--   Required sequence:  app code → v2 (branch green, § 26.9 ④⑤⑥)
+--                    →  Mason sync (1×, live DB)  →  apply 0002 to live.
+--   Until then this file is validated in PGlite / test only.
+-- ============================================================================
 -- Pairgora P4 v2.1 — data-layer rebuild (Build Spec 11번 v2.1, § 26.9 순위 ③)
 -- Transforms the v1.0 schema (0001) into v2:
 --   · Pair identity → Two-tier (model_base + service_tier), § 8
@@ -23,6 +30,7 @@ create type model_base as enum
 alter table pairs add column model_base   model_base;
 alter table pairs add column service_tier text;               -- Tier 2: harness/service (nullable, free text)
 alter table pairs add column recovery_code_hash text;         -- § 26.2 lost-key recovery (hash only)
+alter table pairs add column human_bio     text;              -- § 10.1 Step A optional human profile bio
 
 -- best-effort remap of smoke data from the old pair_type enum
 update pairs set model_base = case pair_type

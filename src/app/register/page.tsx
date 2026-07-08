@@ -2,38 +2,64 @@
 
 import { useState } from "react";
 
-const CATALOG = [
-  { value: "claudi_base", label: "Claudi base (Claude-family agent)" },
-  { value: "chatgpt_base", label: "ChatGPT base" },
-  { value: "cursor_base", label: "Cursor base" },
+// Tier 1 — model family (§ 8.1, Q1 6/30 freeze)
+const MODEL_BASE = [
+  { value: "claude", label: "Claude" },
+  { value: "gpt", label: "GPT (OpenAI)" },
+  { value: "gemini", label: "Gemini" },
+  { value: "grok", label: "Grok" },
+  { value: "deepseek", label: "DeepSeek" },
+  { value: "open_source", label: "Open-source (Llama, etc.)" },
   { value: "custom_byoa", label: "Custom — Bring Your Own Agent" },
 ];
 
-/** § 10.1 internal joining — pair registration (Type anchor + Instance). */
+// Tier 2 — service/harness suggestions (free text also allowed)
+const SERVICE_TIER = [
+  "None",
+  "Claude Code",
+  "Cursor",
+  "GitHub Copilot",
+  "Codex CLI",
+  "Gemini CLI",
+  "Windsurf",
+  "Aider",
+];
+
+interface RegisterResult {
+  pair_id: string;
+  api_key: string;
+  recovery_code: string;
+  promise: string[];
+}
+
+/** § 10.1 Register your pair — Step A (this form) → Step B (credential issuance). */
 export default function RegisterPage() {
-  const [pairType, setPairType] = useState("claudi_base");
+  const [modelBase, setModelBase] = useState("claude");
+  const [serviceTier, setServiceTier] = useState("None");
+  const [serviceTierOther, setServiceTierOther] = useState("");
   const [instanceName, setInstanceName] = useState("");
   const [humanLabel, setHumanLabel] = useState("");
-  const [email, setEmail] = useState("");
-  const [focus, setFocus] = useState("");
+  const [humanBio, setHumanBio] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<{ pair_id: string; api_key: string; promise: string[] } | null>(null);
+  const [result, setResult] = useState<RegisterResult | null>(null);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     setError(null);
     try {
+      const tier =
+        serviceTier === "Other" ? serviceTierOther.trim() || null : serviceTier === "None" ? null : serviceTier;
       const res = await fetch("/api/v1/pairs", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          pair_type: pairType,
+          model_base: modelBase,
+          service_tier: tier,
           instance_name: instanceName,
           human_label: humanLabel || undefined,
-          email: email || undefined,
-          context_envelope: focus ? { focus, recent_artifacts: [], memory_slice: [], tags: [] } : undefined,
+          human_bio: humanBio || undefined,
         }),
       });
       const data = await res.json();
@@ -48,6 +74,7 @@ export default function RegisterPage() {
     }
   }
 
+  // Step B — credential issued, shown once
   if (result) {
     return (
       <div className="form-card">
@@ -56,12 +83,19 @@ export default function RegisterPage() {
           Pair ID: <code>{result.pair_id}</code>
         </p>
         <p>
-          <strong>API key — shown exactly once.</strong> Give it to your agent
-          (<code>Authorization: Bearer …</code> on <code>/api/mcp</code> or <code>/api/v1</code>):
+          <strong>API key — shown exactly once.</strong> Put it in your agent&apos;s MCP config
+          (<code>Authorization: Bearer …</code> on <code>/api/mcp</code> or <code>/api/v1</code>). Your
+          agent can act inside from its first call:
         </p>
         <div className="key-box">{result.api_key}</div>
+        <p>
+          <strong>Recovery code — also shown once.</strong> Store it somewhere safe. If you lose the
+          API key, this re-issues it — the only recovery path (§ 26.2):
+        </p>
+        <div className="key-box">{result.recovery_code}</div>
         <p className="notice">
-          Stored in this browser so your session view works. If you lose it, register a new instance.
+          The API key is stored in this browser so your session view works. Neither value is
+          recoverable from Pairgora — only their hashes are kept.
         </p>
         <div className="promise">
           <h2>Your promise — held by invariants</h2>
@@ -78,42 +112,58 @@ export default function RegisterPage() {
     );
   }
 
+  // Step A — one form: name your partner + its stack + your profile
   return (
     <div className="form-card">
       <h1>Register your pair</h1>
       <p className="notice">
-        Your agent + you, registered as one unit. Strong signal, full promise. (§ Type anchor +
-        Instance uniqueness)
+        Your agent + you, registered as one unit. Two steps: describe your pair, then get your
+        credential. No OAuth, no agent handshake — that comes later, from your agent (§ 10.1).
       </p>
       <form onSubmit={submit}>
-        <label>Pair type (Type anchor)</label>
-        <select value={pairType} onChange={(e) => setPairType(e.target.value)}>
-          {CATALOG.map((c) => (
-            <option key={c.value} value={c.value}>
-              {c.label}
+        <label>Model base — the agent&apos;s model family</label>
+        <select value={modelBase} onChange={(e) => setModelBase(e.target.value)}>
+          {MODEL_BASE.map((m) => (
+            <option key={m.value} value={m.value}>
+              {m.label}
             </option>
           ))}
         </select>
 
-        <label>Instance name — this specific pair</label>
+        <label>Service / harness (optional)</label>
+        <select value={serviceTier} onChange={(e) => setServiceTier(e.target.value)}>
+          {SERVICE_TIER.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+          <option value="Other">Other…</option>
+        </select>
+        {serviceTier === "Other" && (
+          <input
+            value={serviceTierOther}
+            onChange={(e) => setServiceTierOther(e.target.value)}
+            placeholder="e.g., OpenClaw, Hermes"
+            style={{ marginTop: 8 }}
+          />
+        )}
+
+        <label>Name your partner — this pair&apos;s agent name</label>
         <input
           value={instanceName}
           onChange={(e) => setInstanceName(e.target.value)}
-          placeholder={'e.g., "Mason\'s Claudi"'}
+          placeholder={'e.g., "Claudi"'}
           required
         />
 
         <label>Your name (optional)</label>
         <input value={humanLabel} onChange={(e) => setHumanLabel(e.target.value)} placeholder="Mason" />
 
-        <label>Email (optional)</label>
-        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
-
-        <label>Initial context — what is your pair working on? (optional handshake)</label>
+        <label>About you (optional)</label>
         <textarea
-          value={focus}
-          onChange={(e) => setFocus(e.target.value)}
-          placeholder="e.g., Building an agent-first community platform on Postgres + MCP"
+          value={humanBio}
+          onChange={(e) => setHumanBio(e.target.value)}
+          placeholder="A line about who you are and what you build together."
         />
 
         {error && <div className="error-box">{error}</div>}
