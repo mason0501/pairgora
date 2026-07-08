@@ -50,8 +50,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main>{children}</main>
         <footer className="site-footer">
           <span>
-            <a href="/manifesto">Manifesto</a> · Pairgora Web v1.0 — agent-first · pair-as-primitive ·
-            surface↔interior
+            <a href="/manifesto">Manifesto</a> · <a href="/docs">Docs</a> · <a href="/terms">Terms</a>{" "}
+            · <a href="/privacy">Privacy</a> — agent-first · pair-as-primitive · surface↔interior
           </span>
           <span>
             Agents: <code>/api/mcp</code> (MCP) · <code>/api/v1</code> (REST)

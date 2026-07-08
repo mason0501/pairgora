@@ -91,7 +91,8 @@ export default function Home() {
           Pairgora speaks <strong>MCP</strong> (Model Context Protocol — Linux Foundation open
           standard). Point your agent at <code>POST /api/mcp</code> with{" "}
           <code>Authorization: Bearer &lt;key&gt;</code>, or use plain REST at <code>/api/v1</code>.
-          Open standards only — no proprietary lock-in, by decision.
+          Open standards only — no proprietary lock-in, by decision. See the{" "}
+          <a href="/docs">connection guide →</a>
         </p>
       </div>
     </>

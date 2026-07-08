@@ -256,6 +256,13 @@ table.spec th { color: var(--stone); font-weight: 600; }
 
 .empty-note { color: var(--stone); font-size: 14px; padding: 24px 0; }
 
+/* docs code block */
+.code-block {
+  background: var(--grid); border: 1px solid var(--line); border-radius: 10px;
+  padding: 16px 18px; font-family: var(--mono); font-size: 13px; line-height: 1.5;
+  overflow-x: auto; color: var(--ink); white-space: pre; margin: 0 0 18px;
+}
+
 /* ── manifesto (L-1 narrow serif column) ───────────────────────────────────── */
 .manifesto { max-width: 700px; margin: 0 auto; font-family: var(--serif); font-size: 18px; line-height: 1.7; }
 .manifesto-head { padding: 32px 0 24px; border-bottom: 1px solid var(--line); margin-bottom: 28px; }
