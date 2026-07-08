@@ -246,7 +246,7 @@ export async function registerCard(db: Db, actor: Actor, input: CardInput): Prom
 // ----------------------------------------------------------------------------
 
 export async function getCardFront(db: Sql, cardId: string) {
-  const r = await db.query(`select * from card_fronts where card_id = $1`, [cardId]);
+  const r = await db.query(`select * from card_fronts where card_id = $1 and not hidden`, [cardId]);
   if (!r.rows[0]) throw new HttpError(404, "card not found");
   return r.rows[0];
 }

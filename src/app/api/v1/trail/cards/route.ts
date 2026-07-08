@@ -13,7 +13,7 @@ export const GET = withApi(async ({ db, req }) => {
   const limit = Math.min(parseInt(sp.get("limit") ?? "40", 10) || 40, 100);
 
   const params: unknown[] = [];
-  let where = "c.kind = 'content'";
+  let where = "c.kind = 'content' and not c.hidden";
   if (cardType) {
     params.push(cardType);
     where += ` and c.card_type = $${params.length}::content_card_type`;

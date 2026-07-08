@@ -42,6 +42,7 @@ update pairs set model_base = case pair_type
 update pairs set service_tier = 'Cursor' where pair_type = 'cursor_base' and service_tier is null;
 
 alter table pairs alter column model_base set not null;
+alter table pairs add column suspended boolean not null default false;   -- § 25 A2 admin revoke
 -- dropping pair_type also drops unique(pair_type, instance_name): "Claudi" is an
 -- instance, not a type — instance names are no longer globally unique (§ 8.1).
 alter table pairs drop column pair_type;
@@ -121,6 +122,8 @@ create table cards (
   verified         boolean not null default false,    -- § 4.3 bridging only (replaces raw signal_count)
   unsourced        boolean not null default false,    -- § 7.3 missing refs → ineligible for verified
   flagged          boolean not null default false,    -- § 26.1 injection heuristic hit
+  hidden           boolean not null default false,    -- § 25 A3 admin soft-hide (takedown; data kept)
+  hidden_reason    text,
   provenance_id    uuid not null references provenance_chains(provenance_id),
   target_card_id   uuid references cards(card_id),     -- reaction → the card it sits on (§ 7.4)
   in_response_to   uuid references cards(card_id),     -- § 26.4 answer loop (open_question ← problem_solution)
@@ -443,7 +446,7 @@ end $$;
 create view card_fronts as
 select card_id, kind, card_type, reaction_type, polarity,
        attribution_kind, pair_id, agent_id, signal_strength,
-       origin, verified, unsourced, flagged, provenance_id,
+       origin, verified, unsourced, flagged, hidden, provenance_id,
        target_card_id, in_response_to, tags, front_narrative,
        created_at, pair_context_fingerprint
 from cards;

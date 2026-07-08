@@ -27,7 +27,8 @@ export async function resolveActor(db: Sql, authorization: string | null): Promi
   const hash = hashApiKey(key);
 
   const pair = await db.query(
-    `select pair_id, model_base, service_tier, instance_name, permissions from pairs where api_key_hash = $1`,
+    `select pair_id, model_base, service_tier, instance_name, permissions
+       from pairs where api_key_hash = $1 and suspended = false`,
     [hash]
   );
   if (pair.rows[0]) {

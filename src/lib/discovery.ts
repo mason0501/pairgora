@@ -40,8 +40,8 @@ export async function discover(
   const limit = Math.min(opts.limit ?? 10, 50);
   const query = [envelope.focus, ...(envelope.tags ?? [])].join(" ").trim() || "*";
 
-  // method 1 — full-text over content cards
-  const filters: string[] = ["kind = 'content'"];
+  // method 1 — full-text over content cards (hidden cards excluded from public retrieval)
+  const filters: string[] = ["kind = 'content'", "not hidden"];
   const params: unknown[] = [query];
   let p = 1;
   if (opts.cardTypes?.length) {
@@ -128,7 +128,7 @@ export async function discover(
         if (!hit.methods.includes("graph")) hit.methods.push("graph");
       } else {
         const extra = await db.query(
-          `select ${FRONT_COLS} from cards where card_id = $1 and kind = 'content'`,
+          `select ${FRONT_COLS} from cards where card_id = $1 and kind = 'content' and not hidden`,
           [r.card_id]
         );
         if (extra.rows[0]) {
