@@ -14,8 +14,7 @@ export const env = {
   supabasePublishableKey:
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
   supabaseSecretKey: process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? "",
-  openaiKey: process.env.OPENAI_API_KEY ?? "",
-  anthropicKey: process.env.ANTHROPIC_API_KEY ?? "",
+  // No platform LLM keys — invariant 1 (§ 4.3 embedding removed, § 15.3 narrative LLM removed).
 
   // § 9.2 non-member quota (upper bound of decided ranges; tunable)
   quota: {

@@ -1,18 +1,18 @@
 import type { Db, Sql } from "./db";
-import { env } from "./env";
 import { logBoundaryEvent } from "./boundary";
 
 /**
  * § 15.3 Step 3 — observable narrative (output boundary).
- * Hybrid format: agent story (LLM-generated session summary) + activity
- * timeline (Realtime/poll) + value layer indicators (Outcome·Trust·Choice·Control).
+ * Agent story (agent-authored slot OR faithful template — NO platform LLM,
+ * invariant 1 / CR-1 #4) + activity timeline + value layer indicators
+ * (Outcome·Trust·Choice·Control).
  */
 
 export interface SessionNarrative {
   pair_id: string;
   session_id: string | null;
   agent_story: string;
-  story_source: "anthropic" | "template";
+  story_source: "agent" | "template";
   timeline: Array<{
     activity_id: string;
     at: string;
@@ -56,37 +56,22 @@ export async function buildNarrative(db: Db, pairId: string, sessionId?: string 
     control: Number(steers.rows[0]?.n ?? 0), // human steering exercised
   };
 
-  // ── agent story ───────────────────────────────────────────────────────────
+  // ── agent story (invariant 1: NO platform LLM) ────────────────────────────
+  // The story is the agent's own words — its latest Perform entry, the
+  // agent-authored slot — or a faithful template composed from the log.
   let story: string;
-  let source: "anthropic" | "template" = "template";
+  let source: "agent" | "template" = "template";
   if (rows.length === 0) {
     story = "Your agent hasn't acted in this session yet. The trail will appear here, live.";
-  } else if (env.anthropicKey) {
-    try {
-      const { default: Anthropic } = await import("@anthropic-ai/sdk");
-      const client = new Anthropic({ apiKey: env.anthropicKey });
-      const res = await client.messages.create({
-        model: "claude-haiku-4-5",
-        max_tokens: 400,
-        messages: [
-          {
-            role: "user",
-            content:
-              `Write a 2-4 sentence second-person session summary ("Your agent ...") of this AI-agent community activity log. Faithful to the log, warm, no invention:\n` +
-              rows.map((r) => `${r.created_at} ${r.activity_type}: ${r.narrative}`).join("\n"),
-          },
-        ],
-      });
-      story = res.content
-        .filter((b: any) => b.type === "text")
-        .map((b: any) => b.text)
-        .join("");
-      source = "anthropic";
-    } catch {
+  } else {
+    const authored = [...rows].reverse().find((r) => r.activity_type === "perform");
+    const slot = authored ? String(authored.narrative).replace(/^Perform:\s*/, "").trim() : "";
+    if (slot.length > 0) {
+      story = slot;
+      source = "agent";
+    } else {
       story = templateStory(rows);
     }
-  } else {
-    story = templateStory(rows);
   }
 
   // § 1.2 — narrative emission is an output-boundary crossing
@@ -114,7 +99,7 @@ export async function buildNarrative(db: Db, pairId: string, sessionId?: string 
   };
 }
 
-/** Fallback story when no ANTHROPIC_API_KEY — faithful template composition. */
+/** Faithful template composition from the activity log (no LLM). */
 function templateStory(rows: any[]): string {
   const seeks = rows.filter((r) => r.activity_type === "seek");
   const stores = rows.filter((r) => r.activity_type === "store");
