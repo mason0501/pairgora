@@ -62,6 +62,13 @@ node scripts/seed.mjs https://pairgora.com
 - DB: `0002` is destructive to v1 structures; rollback = restore from Supabase PITR
   / pre-migration `pg_dump`. **Take a `pg_dump` before step 3.**
 
+## Cron (optional, post-launch)
+
+`POST /api/v1/consistency/scan` is admin-gated: send
+`Authorization: Bearer ${ADMIN_ACCESS_TOKEN}` (Vercel Cron custom header) or use an
+admin session. Seed script auto-retags 📌 reference cards when `ADMIN_ACCESS_TOKEN`
+is set in its environment.
+
 ## Open (post-launch, not blocking)
 
 - ⑨ verified-badge copy tuning · A4/A5/A7 admin (cron) · claim flow (§ 26.3) ·

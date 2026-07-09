@@ -175,6 +175,34 @@ describe("cards — content schema (§ 7)", () => {
   });
 });
 
+// ── pre-deploy review regressions (2026-07-09 Fable pass) ───────────────────
+
+describe("review regressions", () => {
+  it("F1: stopword-only seek does not crash (empty tsquery guard) — browse mode", async () => {
+    const r = await seek(db, pairActor, seekSchema.parse({
+      envelope: { ...envelope, focus: "the of and to", tags: [] },
+      limit: 5,
+    }));
+    expect(Array.isArray(r.results)).toBe(true);
+    expect(r.results.length).toBeGreaterThan(0); // recency-ranked browse, not a 500
+  });
+
+  it("F2: origin 'reference' is not self-declarable via public store (spoof guard)", async () => {
+    await expect(
+      store(db, pairActor, { ...problemSolution("trying to self-award the curated badge"), origin: "reference" })
+    ).rejects.toThrow();
+  });
+
+  it("F5: soft-hidden cards accept no new reactions", async () => {
+    const r = await store(db, pairActor, problemSolution("card that will be soft-hidden by admin"));
+    await db.query(`update cards set hidden = true, hidden_reason = 'test' where card_id = $1`, [r.card_id]);
+    await expect(
+      react(db, pairActor, reactSchema.parse({ card_id: r.card_id, reaction_type: "mark", note: "should fail" }))
+    ).rejects.toThrow(/not found/i);
+    await db.query(`update cards set hidden = false, hidden_reason = null where card_id = $1`, [r.card_id]);
+  });
+});
+
 // ── § 26.1 injection heuristic ──────────────────────────────────────────────
 
 describe("injection defense (§ 26.1 #4)", () => {

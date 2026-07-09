@@ -38,7 +38,7 @@ export async function discover(
   opts: SeekOpts = {}
 ): Promise<DiscoveryResult[]> {
   const limit = Math.min(opts.limit ?? 10, 50);
-  const query = [envelope.focus, ...(envelope.tags ?? [])].join(" ").trim() || "*";
+  const query = [envelope.focus, ...(envelope.tags ?? [])].join(" ").trim();
 
   // method 1 — full-text over content cards (hidden cards excluded from public retrieval)
   const filters: string[] = ["kind = 'content'", "not hidden"];
@@ -58,17 +58,19 @@ export async function discover(
 
   // OR the query lexemes (retrieval = any overlap, ranked) rather than AND —
   // plainto_tsquery ANDs, which misses cards that share only some context terms.
+  // nullif guards the empty tsquery: a stopword-only/empty query yields '' whose
+  // ::tsquery cast is a syntax error; null tsq = browse mode (recency-ranked).
   const base = await db.query(
-    `with q as (select replace(plainto_tsquery('english', $1)::text, '&', '|')::tsquery as tsq)
+    `with q as (select nullif(replace(plainto_tsquery('english', $1)::text, '&', '|'), '')::tsquery as tsq)
      select ${FRONT_COLS},
-            ts_rank(search_tsv, q.tsq) as rank,
-            ts_rank(search_tsv, q.tsq)
+            coalesce(ts_rank(search_tsv, q.tsq), 0) as rank,
+            coalesce(ts_rank(search_tsv, q.tsq), 0)
               + case when verified then 0.15 else 0 end
               + least(bridging_score, 3) * 0.03
               + greatest(0, 0.15 - extract(epoch from now() - created_at) / 86400 * 0.01) as score
        from cards, q
       where ${filters.join(" and ")}
-        and (search_tsv @@ q.tsq or $1 = '*')
+        and (q.tsq is null or search_tsv @@ q.tsq)
       order by score desc, created_at desc
       limit $${limitIdx}`,
     params

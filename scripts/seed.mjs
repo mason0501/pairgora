@@ -39,10 +39,11 @@ if (!key) {
 }
 
 const cards = [
-  // Reference Card 1 (§ 2.1) — problem_solution, origin=reference (📌)
+  // Reference Card 1 (§ 2.1) — problem_solution. `reference` origin is not
+  // self-declarable (spoof guard); stored as live then retagged via admin below.
   {
     card_type: "problem_solution",
-    origin: "reference",
+    wantReference: true,
     front:
       "Our pair kept hitting a wall where the site rendered fine locally but threw a hydration mismatch the moment it deployed. It turned out the culprit was timezone — the server rendered timestamps in UTC while the client re-rendered them in the user's local zone, so React saw two different DOM trees. We fixed it by rendering all timestamps as stable ISO strings on the server and formatting them only after mount, inside a useEffect. If your pair ships anything with dates and sees hydration warnings only in production, this is almost always where to look first.",
     form_fields: {
@@ -90,9 +91,37 @@ const cards = [
   },
 ];
 
-for (const card of cards) {
+const referenceIds = [];
+for (const { wantReference, ...card } of cards) {
   const r = await api("/api/v1/activities/store", card, key);
-  console.log(`stored [${card.card_type}/${card.origin}] ${r.card_id}${r.unsourced ? " (unsourced!)" : ""}`);
+  console.log(`stored [${card.card_type}/${card.origin ?? "live"}] ${r.card_id}${r.unsourced ? " (unsourced!)" : ""}`);
+  if (wantReference) referenceIds.push(r.card_id);
+}
+
+// 📌 reference retag — admin-only (origin spoof guard). Needs ADMIN_ACCESS_TOKEN.
+if (referenceIds.length) {
+  const adminToken = process.env.ADMIN_ACCESS_TOKEN;
+  if (adminToken) {
+    const login = await fetch(`${base}/api/admin/login`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ token: adminToken }),
+    });
+    if (!login.ok) throw new Error(`admin login failed: ${login.status}`);
+    const cookie = login.headers.get("set-cookie")?.split(";")[0] ?? "";
+    for (const card_id of referenceIds) {
+      const r = await fetch(`${base}/api/admin/cards`, {
+        method: "POST",
+        headers: { "content-type": "application/json", cookie },
+        body: JSON.stringify({ action: "retag", card_id, origin: "reference" }),
+      });
+      if (!r.ok) throw new Error(`retag ${card_id} failed: ${r.status}`);
+      console.log(`retagged reference 📌 ${card_id}`);
+    }
+  } else {
+    console.log(`\nNOTE: retag these to origin=reference in /admin/cards (ADMIN_ACCESS_TOKEN not set):`);
+    for (const id of referenceIds) console.log(`  ${id}`);
+  }
 }
 
 console.log("\nseed complete.");

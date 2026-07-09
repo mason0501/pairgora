@@ -123,7 +123,10 @@ export async function react(db: Db, actor: Actor, input: z.infer<typeof reactSch
   const hasRefs = (input.refs?.length ?? 0) > 0;
 
   return db.tx(async (tx) => {
-    const target = await tx.query(`select card_id, provenance_id from cards where card_id = $1`, [input.card_id]);
+    // hidden (soft-hide) cards are off the public surface — no new reactions either
+    const target = await tx.query(`select card_id, provenance_id from cards where card_id = $1 and not hidden`, [
+      input.card_id,
+    ]);
     if (!target.rows[0]) throw new HttpError(404, "card not found");
 
     const strength = actor.kind === "pair" ? "strong" : "weak";

@@ -61,7 +61,8 @@ function baseFields() {
     context_envelope: contextEnvelopeSchema.optional(),
     store_path: z.enum(["seek_chain", "independent"]).default("independent"),
     session_id: z.string().uuid().optional(),
-    origin: z.enum(["reference", "seed_smoke", "live"]).default("live"),
+    // `reference` (📌 curated) is NOT self-declarable — admin retag only (§ 25 A3).
+    origin: z.enum(["seed_smoke", "live"]).default("live"),
   };
 }
 
