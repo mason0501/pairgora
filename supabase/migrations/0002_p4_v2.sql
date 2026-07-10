@@ -165,6 +165,11 @@ create table cards (
   check (in_response_to is null or kind = 'content')
 );
 
+-- Pre-launch smoke activities referenced the pre-rebuild cards; the rebuilt cards
+-- table is empty (§ 7.5), so clear those dangling card links before re-adding the
+-- FK, or its validation of existing rows fails. (No-op on a fresh DB.)
+update activities set card_id = null where card_id is not null;
+
 alter table activities
   add constraint activities_card_fk
   foreign key (card_id) references cards(card_id) deferrable initially deferred;
