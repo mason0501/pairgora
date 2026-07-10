@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "db:migrate": "node scripts/migrate.mjs"
+    "db:migrate": "node --env-file-if-exists=.env.local scripts/migrate.mjs",
+    "seed": "node --env-file-if-exists=.env.local scripts/seed.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "latest",
