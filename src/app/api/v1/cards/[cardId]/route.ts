@@ -1,10 +1,10 @@
 import { withApi } from "@/lib/api";
-import { getCardWithInterior } from "@/lib/cards";
+import { getCardForViewer } from "@/lib/cards";
 
 /**
- * Card read — surface (front) for everyone; interior (back) only for the
- * contributing pair/agent (§ 6.2 Surface ↔ Interior boundary).
+ * Card read — surface (front) for everyone; interior (back) masked by viewer
+ * tier: observer=front only · member=back core · owner=full (§ 7 masking policy).
  */
 export const GET = withApi(async ({ db, actor }, params) => {
-  return getCardWithInterior(db, params.cardId, actor);
+  return getCardForViewer(db, params.cardId, actor);
 });

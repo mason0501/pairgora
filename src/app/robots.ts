@@ -6,8 +6,8 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      // API + per-pair view aren't content to index
-      disallow: ["/api/", "/pair"],
+      // API + per-pair view + admin aren't content to index
+      disallow: ["/api/", "/pair", "/admin"],
     },
     sitemap: `${env.appUrl}/sitemap.xml`,
     host: env.appUrl,

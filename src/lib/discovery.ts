@@ -1,70 +1,96 @@
 import type { Sql } from "./db";
-import { toVectorLiteral, toArrayLiteral } from "./db";
-import { embed } from "./embeddings";
+import { toArrayLiteral } from "./db";
 import type { ContextEnvelope } from "./envelope";
-import { envelopeToText } from "./envelope";
 import type { Actor } from "./auth";
 
 /**
- * § 4.2 Cluster B-2 Discovery — multi-method retrieval over the single
- * Postgres axis:
- *   1. embedding similarity        (pgvector cosine)
- *   2. memory link traversal       (cards sharing the caller's memory entries)
- *   3. provenance graph walk       (target_card_id edges around seed matches)
- * Ranking = similarity + trust signal weight + recency + signal-type fit
- * (§ 4.2 ranking inputs), with bonuses when methods 2/3 corroborate.
+ * § 4.2 Cluster B-2 Discovery — structured retrieval only (6/30 D: no platform
+ * embedding). Multi-method over the single Postgres axis:
+ *   1. full-text          (tsvector/GIN, pair-context derived query)
+ *   2. memory link         (cards sharing the caller's recent memory entries)
+ *   3. answer/graph 1-hop  (in_response_to + reaction target edges around seeds)
+ * Ranking = ts_rank + verified/bridging trust weight + recency. Final semantic
+ * re-ranking is the consuming agent's own LLM (§ 3.2) — never Pairgora's.
  */
 
 export interface DiscoveryResult {
   card: any; // card front (surface only)
   score: number;
-  similarity: number;
+  rank: number;
   methods: string[];
 }
 
-const SCORE_SQL = `
-  (1 - (e.embedding <=> $1::vector))                                   -- similarity
-  + least(c.signal_count, 10) * 0.03
-      * case c.signal_strength when 'strong' then 1.0 else 0.5 end     -- trust weight
-  + greatest(0, 0.15 - extract(epoch from now() - c.created_at) / 86400 * 0.01) -- recency
-`;
+export interface SeekOpts {
+  limit?: number;
+  cardTypes?: string[];
+  tags?: string[];
+  verifiedOnly?: boolean;
+}
+
+const FRONT_COLS = `card_id, kind, card_type, reaction_type, attribution_kind, pair_id, agent_id,
+  signal_strength, origin, verified, unsourced, flagged, provenance_id, target_card_id,
+  in_response_to, tags, front_narrative, created_at, pair_context_fingerprint`;
 
 export async function discover(
   db: Sql,
   actor: Actor,
   envelope: ContextEnvelope,
-  opts: { limit?: number; typeFit?: string[] } = {}
+  opts: SeekOpts = {}
 ): Promise<DiscoveryResult[]> {
   const limit = Math.min(opts.limit ?? 10, 50);
-  const { embedding } = await embed(envelopeToText(envelope));
-  const vec = toVectorLiteral(embedding);
+  const query = [envelope.focus, ...(envelope.tags ?? [])].join(" ").trim();
 
-  // method 1 — embedding similarity over card fronts
+  // method 1 — full-text over content cards (hidden cards excluded from public retrieval)
+  const filters: string[] = ["kind = 'content'", "not hidden"];
+  const params: unknown[] = [query];
+  let p = 1;
+  if (opts.cardTypes?.length) {
+    filters.push(`card_type = any($${++p}::content_card_type[])`);
+    params.push(toArrayLiteral(opts.cardTypes));
+  }
+  if (opts.tags?.length) {
+    filters.push(`tags && $${++p}::text[]`);
+    params.push(toArrayLiteral(opts.tags));
+  }
+  if (opts.verifiedOnly) filters.push("verified = true");
+  const limitIdx = ++p;
+  params.push(limit * 3);
+
+  // OR the query lexemes (retrieval = any overlap, ranked) rather than AND —
+  // plainto_tsquery ANDs, which misses cards that share only some context terms.
+  // nullif guards the empty tsquery: a stopword-only/empty query yields '' whose
+  // ::tsquery cast is a syntax error; null tsq = browse mode (recency-ranked).
   const base = await db.query(
-    `select c.*, (1 - (e.embedding <=> $1::vector)) as similarity, (${SCORE_SQL}) as score
-       from card_fronts c
-       join embeddings e on e.card_id = c.card_id
-       ${opts.typeFit?.length ? "where c.type = any($3::card_type[])" : ""}
-      order by score desc
-      limit $2`,
-    opts.typeFit?.length ? [vec, limit * 3, toArrayLiteral(opts.typeFit)] : [vec, limit * 3]
+    `with q as (select nullif(replace(plainto_tsquery('english', $1)::text, '&', '|'), '')::tsquery as tsq)
+     select ${FRONT_COLS},
+            coalesce(ts_rank(search_tsv, q.tsq), 0) as rank,
+            coalesce(ts_rank(search_tsv, q.tsq), 0)
+              + case when verified then 0.15 else 0 end
+              + least(bridging_score, 3) * 0.03
+              + greatest(0, 0.15 - extract(epoch from now() - created_at) / 86400 * 0.01) as score
+       from cards, q
+      where ${filters.join(" and ")}
+        and (q.tsq is null or search_tsv @@ q.tsq)
+      order by score desc, created_at desc
+      limit $${limitIdx}`,
+    params
   );
 
   const results = new Map<string, DiscoveryResult>();
   for (const row of base.rows) {
-    const { similarity, score, ...card } = row;
-    results.set(card.card_id, { card, similarity: Number(similarity), score: Number(score), methods: ["embedding"] });
+    const { rank, score, ...card } = row;
+    results.set(card.card_id, { card, rank: Number(rank), score: Number(score), methods: ["fulltext"] });
   }
 
-  // method 2 — memory link traversal: cards derived from memory entries of
-  // the caller's own pair history (cross-pair: entries semantically shared)
+  // method 2 — memory link traversal: cards derived from the caller's recent memory
   if (actor.kind !== "anonymous") {
     const idCol = actor.kind === "pair" ? "pair_id" : "agent_id";
     const idVal = actor.kind === "pair" ? actor.pairId : actor.agentId;
     const linked = await db.query(
       `select distinct c.card_id
          from cards c
-        where c.memory_link && (
+        where c.kind = 'content'
+          and c.memory_link && (
                 select coalesce(array_agg(m.memory_id), '{}')
                   from memory_entries m
                  where m.${idCol} = $1
@@ -81,39 +107,34 @@ export async function discover(
     }
   }
 
-  // method 3 — provenance graph walk: cards connected to top seeds via
-  // target_card_id edges (signals/counterexamples/caveats), both directions
+  // method 3 — 1-hop graph: answers to / questions of the top seeds (§ 26.4)
   const seedIds = [...results.values()]
     .sort((a, b) => b.score - a.score)
     .slice(0, 10)
     .map((r) => r.card.card_id);
   if (seedIds.length) {
     const walked = await db.query(
-      `with recursive walk(card_id, depth) as (
-         select card_id, 0 from cards where card_id = any($1::uuid[])
+      `select distinct card_id from (
+         select card_id from cards where in_response_to = any($1::uuid[])
          union
-         select case when c.card_id = w.card_id then c.target_card_id else c.card_id end, w.depth + 1
-           from walk w
-           join cards c on (c.card_id = w.card_id or c.target_card_id = w.card_id)
-          where w.depth < 2 and c.target_card_id is not null
-       )
-       select distinct card_id from walk where depth > 0 and card_id is not null`,
+         select in_response_to as card_id from cards where card_id = any($1::uuid[]) and in_response_to is not null
+         union
+         select target_card_id as card_id from cards where target_card_id = any($1::uuid[]) and kind = 'reaction'
+       ) g where card_id is not null`,
       [toArrayLiteral(seedIds)]
     );
     for (const r of walked.rows) {
       const hit = results.get(r.card_id);
       if (hit) {
         hit.score += 0.05;
-        if (!hit.methods.includes("provenance_walk")) hit.methods.push("provenance_walk");
+        if (!hit.methods.includes("graph")) hit.methods.push("graph");
       } else {
-        const extra = await db.query(`select * from card_fronts where card_id = $1`, [r.card_id]);
+        const extra = await db.query(
+          `select ${FRONT_COLS} from cards where card_id = $1 and kind = 'content' and not hidden`,
+          [r.card_id]
+        );
         if (extra.rows[0]) {
-          results.set(r.card_id, {
-            card: extra.rows[0],
-            similarity: 0,
-            score: 0.05,
-            methods: ["provenance_walk"],
-          });
+          results.set(r.card_id, { card: extra.rows[0], rank: 0, score: 0.05, methods: ["graph"] });
         }
       }
     }

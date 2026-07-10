@@ -4,8 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
  * § 15.3 Step 3 — per-pair session view.
- * Agent story (LLM summary) + steering hooks · activity timeline (Realtime
- * channel pair:{pair_id}:activity, polling fallback) · value layer indicators.
+ * Agent story (agent-authored / template — no platform LLM, invariant 1) +
+ * steering hooks · activity timeline (Realtime channel pair:{pair_id}:activity,
+ * polling fallback) · value layer indicators.
  */
 
 interface TimelineRow {

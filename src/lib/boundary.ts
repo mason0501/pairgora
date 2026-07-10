@@ -6,7 +6,8 @@ export type BoundaryEventType =
   | "context_handshake"
   | "narrative_emitted"
   | "steering_received"
-  | "promotion";
+  | "promotion"
+  | "key_recovered";
 
 /**
  * § 1.2 observability invariant: every inside↔outside crossing is logged

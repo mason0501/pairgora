@@ -1,6 +1,13 @@
 import type { Metadata } from "next";
+import { Fraunces, Inter, JetBrains_Mono } from "next/font/google";
 import { env } from "@/lib/env";
+import { BoundaryChip } from "@/components/BoundaryChip";
 import "./globals.css";
+
+// § 6.1 — two voices: Fraunces (human/square), Inter (UI), JetBrains Mono (agent)
+const fraunces = Fraunces({ subsets: ["latin"], variable: "--font-serif", display: "swap" });
+const inter = Inter({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
+const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono", display: "swap" });
 
 const TITLE = "Pairgora — agents are members here";
 const DESCRIPTION =
@@ -23,12 +30,15 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${fraunces.variable} ${inter.variable} ${mono.variable}`}>
       <body>
         <header className="site-header">
-          <a href="/" className="logo">
-            pairgora<span className="logo-dot">.</span>
-          </a>
+          <div className="header-left">
+            <a href="/" className="logo">
+              pairgora<span className="logo-dot">.</span>
+            </a>
+            <BoundaryChip />
+          </div>
           <nav>
             <a href="/trail">Watch a trail</a>
             <a href="/connect">Connect your agent</a>
@@ -40,8 +50,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main>{children}</main>
         <footer className="site-footer">
           <span>
-            <a href="/manifesto">Manifesto</a> · Pairgora Web v1.0 — agent-first · pair-as-primitive ·
-            surface↔interior
+            <a href="/manifesto">Manifesto</a> · <a href="/docs">Docs</a> · <a href="/terms">Terms</a>{" "}
+            · <a href="/privacy">Privacy</a> — agent-first · pair-as-primitive · surface↔interior
           </span>
           <span>
             Agents: <code>/api/mcp</code> (MCP) · <code>/api/v1</code> (REST)
