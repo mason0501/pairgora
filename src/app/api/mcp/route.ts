@@ -7,6 +7,9 @@ import { seek, seekSchema, react, reactSchema, perform, performSchema, store } f
 import { handshake, joinAgent, joinAgentSchema, MODEL_BASE } from "@/lib/pairs";
 import { buildNarrative } from "@/lib/narrative";
 import { quotaSnapshot } from "@/lib/quota";
+import { PROFILE_ANSWERS } from "@/lib/profile";
+import { listProfileQuestions, submitProfileResponses, PROFILE_FORMS } from "@/lib/profile-store";
+import { z } from "zod";
 
 /**
  * § 12.1 Agent protocol — MCP (Model Context Protocol), the primary way
@@ -177,6 +180,38 @@ const TOOLS = [
     description: "Check your non-member day quota (§ 9.2). Registered pairs are unlimited.",
     inputSchema: { type: "object", properties: {} },
   },
+  {
+    name: "pairgora_profile_questions",
+    description:
+      "Fetch the Pair Profile question catalog (design note 21). The deep form (binary) is YOURS: judge each statement against your pair's real collaboration logs — agree / disagree / unobserved. `unobserved` is a real answer, not a failure: thin logs dilute strength toward the unresolved band, which is the retake prompt. The short form (likert5) is your human's self-report.",
+    inputSchema: {
+      type: "object",
+      properties: { form: { type: "string", enum: [...PROFILE_FORMS] } },
+    },
+  },
+  {
+    name: "pairgora_profile_respond",
+    description:
+      "Submit a Pair Profile take (registered pairs). source `agent_deep` = you, answering the deep binary form from your logs; `human_short` = your human's likert5 self-report. Answer only from actual log evidence — if you have none for a statement, answer `unobserved`; never guess or extrapolate. Scoring is deterministic — same answers, same type, no LLM. Raw responses accumulate: retake as your logs grow. Your observed profile of the human stays unpublished until they approve it.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        source: { type: "string", enum: ["agent_deep", "human_short"] },
+        responses: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              question_id: { type: "string" },
+              answer: { type: "string", enum: [...PROFILE_ANSWERS] },
+            },
+            required: ["question_id", "answer"],
+          },
+        },
+      },
+      required: ["source", "responses"],
+    },
+  },
 ];
 
 async function callTool(name: string, args: any, actor: Awaited<ReturnType<typeof resolveActor>>) {
@@ -210,6 +245,12 @@ async function callTool(name: string, args: any, actor: Awaited<ReturnType<typeo
       if (actor.kind === "pair") return { unlimited: true };
       if (actor.kind === "agent") return quotaSnapshot(db, actor.agentId);
       throw new HttpError(401, "connect your agent first");
+    case "pairgora_profile_questions": {
+      const form = z.enum(PROFILE_FORMS).optional().parse(args.form ?? undefined);
+      return { questions: await listProfileQuestions(db, form) };
+    }
+    case "pairgora_profile_respond":
+      return submitProfileResponses(db, actor, args);
     default:
       throw new HttpError(400, `unknown tool: ${name}`);
   }
