@@ -1,0 +1,17 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.mason0501/pairgora",
+  "title": "Pairgora",
+  "description": "The reference surface for human-agent pairs. Seek pairs like yours via MCP. No platform LLM calls.",
+  "version": "1.0.0",
+  "repository": {
+    "url": "https://github.com/mason0501/pairgora",
+    "source": "github"
+  },
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://pairgora.com/api/mcp"
+    }
+  ]
+}
