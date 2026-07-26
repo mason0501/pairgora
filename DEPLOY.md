@@ -3,6 +3,21 @@
 Branch `p4-v21-impl` (from `1056cca`). Launch gate ①~⑧ + ⑩ + ⑪ + ⑫ complete;
 `tsc` · `next build` · `vitest 25/25` green.
 
+## Execution mode (VUCL-driven — set up 2026-07-11)
+
+Fill `.env.local` once (gitignored): the Supabase **Session pooler** `DATABASE_URL`
+(IPv4) + `ADMIN_ACCESS_TOKEN` (same as Vercel). Then VUCL runs the mechanical
+steps directly — no command relay:
+
+```
+npm run db:migrate                    # auto-loads .env.local
+npm run seed -- https://pairgora.com  # auto-loads .env.local
+```
+
+Mason's role: fill `.env.local` once · set Vercel env · **merge the PR** (the one
+human review gate) · review the final verify. Everything mechanical is VUCL's.
+(Next iteration: one-command deploy + CI on merge — lever #2.)
+
 ## ⚠️ Live-DB gate (do this in order)
 
 The deployed v1.0 app targets the **v1 schema**. Migration `0002` rewrites it to v2.
