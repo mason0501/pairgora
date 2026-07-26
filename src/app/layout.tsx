@@ -41,6 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
           <nav>
             <a href="/trail">Watch a trail</a>
+            <a href="/profile">Pair profile</a>
             <a href="/connect">Connect your agent</a>
             <a href="/register" className="nav-cta">
               Register your pair

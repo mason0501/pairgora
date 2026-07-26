@@ -263,6 +263,89 @@ table.spec th { color: var(--stone); font-weight: 600; }
   overflow-x: auto; color: var(--ink); white-space: pre; margin: 0 0 18px;
 }
 
+/* ── pair profile (design note 21) — direction, not level ─────────────────── */
+.profile-h1 { font-family: var(--serif); font-weight: 600; font-size: 34px; margin: 8px 0 2px; letter-spacing: -0.3px; }
+
+/* short form — likert5 rows + sticky progress */
+.profile-progress {
+  position: sticky; top: 57px; z-index: 5; padding: 12px 0 10px; margin-top: 18px;
+  background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(6px);
+  display: flex; align-items: center; gap: 14px;
+}
+.profile-progress .notice { white-space: nowrap; font-family: var(--mono); }
+.progress-track { flex: 1; height: 4px; background: var(--grid); border-radius: 2px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--human); border-radius: 2px; transition: width 0.2s; }
+
+.likert-list { list-style: none; margin: 6px 0 0; padding: 0; }
+.likert-item { padding: 18px 0 16px; border-bottom: 1px solid var(--line); }
+.likert-prompt { font-family: var(--serif); font-size: 17px; line-height: 1.5; margin: 0 0 12px; }
+.likert-num { font-family: var(--mono); font-size: 11px; color: var(--stone); margin-right: 6px; }
+.likert-scale { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.likert-dot {
+  width: 30px; height: 30px; border-radius: 50%; flex: none;
+  background: var(--paper); border: 1.5px solid var(--line); cursor: pointer;
+  margin: 0; padding: 0; transition: border-color 0.12s, background 0.12s;
+}
+.likert-dot:hover { border-color: var(--human); filter: none; }
+.likert-dot.selected { background: var(--human); border-color: var(--human); }
+.likert-endlabel { font-family: var(--mono); font-size: 11px; color: var(--stone); }
+.skip-answer {
+  margin: 0 0 0 auto; padding: 4px 8px; background: transparent; border: 0;
+  color: var(--stone); font-size: 12px; font-family: var(--mono); cursor: pointer;
+}
+.skip-answer:hover { color: var(--ink); filter: none; text-decoration: underline; }
+.skip-answer.selected { color: var(--agent); text-decoration: none; }
+
+/* spectrum bars — score in [-1,+1], both poles equal; grid band = unresolved zone */
+.axes-layer-title { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--stone); margin: 20px 0 14px; }
+.axis-row { margin: 0 0 18px; }
+.axis-row.mismatch { background: linear-gradient(90deg, var(--agent-soft), var(--human-soft)); border-radius: 10px; padding: 10px 14px 8px; }
+.axis-poles { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-family: var(--mono); font-size: 12px; color: var(--stone); margin-bottom: 7px; }
+.axis-poles .pole.chosen { color: var(--ink); font-weight: 600; }
+.axis-title { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.8px; text-align: center; }
+.delta-chip { color: var(--human); letter-spacing: 0.5px; }
+.axis-track { position: relative; height: 16px; }
+.axis-track::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 2px; margin-top: -1px; background: var(--line); border-radius: 1px; }
+.axis-band { position: absolute; top: 3px; bottom: 3px; background: var(--grid); border-radius: 5px; }
+.axis-mid { position: absolute; left: 50%; top: 2px; bottom: 2px; width: 1px; background: var(--line); }
+.axis-marker {
+  position: absolute; top: 50%; width: 12px; height: 12px; border-radius: 50%;
+  transform: translate(-50%, -50%); mix-blend-mode: multiply;
+}
+.axis-marker.human { background: var(--human); }
+.axis-marker.agent { background: var(--agent); }
+.axis-marker.open { background: var(--paper); mix-blend-mode: normal; }
+.axis-marker.human.open { border: 1.5px solid var(--human); }
+.axis-marker.agent.open { border: 1.5px solid var(--agent); }
+.axis-note { font-size: 12px; color: var(--stone); margin: 5px 0 0; font-style: italic; }
+
+/* results hub */
+.type-hero { margin: 4px 0 6px; }
+.type-code { font-family: var(--mono); font-size: 28px; letter-spacing: 3px; color: var(--ink); font-weight: 600; }
+.type-code.open-code { color: var(--stone); font-weight: 400; }
+.type-name { font-family: var(--serif); font-size: 25px; font-weight: 600; margin-left: 6px; }
+.type-narrative { font-family: var(--serif); font-size: 17px; line-height: 1.55; color: #55524c; margin: 8px 0 0; max-width: 620px; }
+.completeness { display: flex; align-items: center; gap: 12px; margin-top: 18px; }
+.ink-legend { font-size: 12.5px; color: var(--stone); font-family: var(--mono); margin: 0 0 12px; }
+.ink-legend .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+.ink-legend .dot.human { background: var(--human); }
+.ink-legend .dot.agent { background: var(--agent); }
+
+/* type gallery — public landing */
+.letter-legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 22px 0 30px; }
+.letter-legend .ll { background: var(--grid); border: 1px solid var(--line); border-radius: 10px; padding: 13px 15px; }
+.ll-letters { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 12.5px; }
+.ll-letters strong { font-family: var(--mono); color: var(--ink); }
+.ll-dim { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--stone); }
+.ll-blurb { margin: 8px 0 0; font-size: 12.5px; color: var(--stone); line-height: 1.45; }
+.type-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+.type-card { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; box-shadow: var(--shadow); transition: box-shadow 0.15s, transform 0.15s; }
+.type-card:hover { box-shadow: var(--shadow-lift); transform: translateY(-1px); }
+.type-card .code { font-family: var(--mono); font-size: 12px; letter-spacing: 2px; color: var(--agent); margin-bottom: 8px; }
+.type-card h3 { font-family: var(--serif); font-weight: 600; font-size: 19px; margin: 0 0 8px; }
+.type-card p { margin: 0; font-size: 13.5px; line-height: 1.5; color: #55524c; }
+.types-cta { margin-top: 44px; }
+
 /* ── manifesto (L-1 narrow serif column) ───────────────────────────────────── */
 .manifesto { max-width: 700px; margin: 0 auto; font-family: var(--serif); font-size: 18px; line-height: 1.7; }
 .manifesto-head { padding: 32px 0 24px; border-bottom: 1px solid var(--line); margin-bottom: 28px; }
