@@ -265,6 +265,18 @@ export default function ProfilePage() {
     localStorage.setItem("pairgora_pair_key", key);
     setPairId(id);
     setApiKey(key);
+    setError(null);
+  }
+
+  // A stored key can go stale (rotation, different pair on this browser) — a
+  // 401 must fall back to the gate instead of dead-ending the filled form.
+  // Answers live in state, so re-entering the key keeps them.
+  function resetKey(message: string | null) {
+    localStorage.removeItem("pairgora_pair_id");
+    localStorage.removeItem("pairgora_pair_key");
+    setPairId(null);
+    setApiKey(null);
+    setError(message);
   }
 
   const answered = useMemo(
@@ -290,6 +302,10 @@ export default function ProfilePage() {
         }),
       });
       const data = await res.json();
+      if (res.status === 401) {
+        resetKey("This browser had a stored key that was not accepted — enter your pair id and key again. Your answers are kept.");
+        return;
+      }
       if (!res.ok) throw new Error(data.error ?? "submission failed");
       await loadAll();
       setMode("hub");
@@ -312,6 +328,10 @@ export default function ProfilePage() {
         body: JSON.stringify({ result_id: resultId }),
       });
       const data = await res.json();
+      if (res.status === 401) {
+        resetKey("This browser had a stored key that was not accepted — enter your pair id and key again.");
+        return;
+      }
       if (!res.ok) throw new Error(data.error ?? "approval failed");
       await loadAll();
     } catch (e: any) {
@@ -328,6 +348,7 @@ export default function ProfilePage() {
     return (
       <div className="form-card">
         <h1>Pair profile</h1>
+        {error && <div className="error-box">{error}</div>}
         <p className="notice">
           The short form is your side of the pair profile — 24 statements, about 5 minutes. It needs
           your pair key; the key stays in this browser and is only sent as{" "}
