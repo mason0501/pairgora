@@ -179,16 +179,23 @@ function TypeHero({ result }: { result: ProfileResult }) {
       </div>
     );
   }
+  const partialCode = REPRESENTATIVE_AXES.map((rep) => {
+    const r = result.axes[rep.axis];
+    if (!r?.resolved || r.pole === null) return "·";
+    return r.pole === "A" ? rep.letter_a : rep.letter_b;
+  }).join("-");
   const openReps = REPRESENTATIVE_AXES.filter((r) => !result.axes[r.axis]?.resolved).length;
   return (
     <div className="type-hero">
       <div>
-        <span className="type-code open-code">·-·-·-·</span>
+        <span className="type-code open-code">{partialCode}</span>
         <span className="type-name"> No type yet</span>
       </div>
       <p className="type-narrative">
-        {openReps} of the 4 signature axes still need more signal. That&apos;s not a failure — it&apos;s a
-        young pair. Retake later and the letters settle.{" "}
+        {4 - openReps} of the 4 signature letters {openReps === 3 ? "has" : "have"} settled;{" "}
+        {openReps} {openReps === 1 ? "axis sits" : "axes sit"} inside the unresolved band (|score| &lt;
+        θ) even with every question answered. That&apos;s not a failure — it&apos;s a young pair.
+        Retake later and the dots settle into letters.{" "}
         <a href="/profile/types">Browse the 16 types meanwhile →</a>
       </p>
     </div>
