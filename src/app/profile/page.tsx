@@ -5,6 +5,7 @@ import {
   AXIS_SPECS,
   PROFILE_AXES,
   REPRESENTATIVE_AXES,
+  compareProfiles,
   type AxisResult,
   type ProfileAnswer,
   type ProfileAxis,
@@ -237,12 +238,16 @@ export default function ProfilePage() {
     setReady(true);
   }, []);
 
-  const loadAll = useCallback(async () => {
+  const loadAll = useCallback(async (opts?: { soft?: boolean }) => {
     if (!pairId || !apiKey) return;
-    setError(null);
+    if (!opts?.soft) setError(null);
     try {
+      // the questions catalog is public, but sending the pair key keeps a
+      // member out of the anonymous per-IP rate bucket
       const [qRes, pRes] = await Promise.all([
-        fetch("/api/v1/profile/questions?form=short"),
+        fetch("/api/v1/profile/questions?form=short", {
+          headers: { authorization: `Bearer ${apiKey}` },
+        }),
         fetch(`/api/v1/profile/${pairId}`, { headers: { authorization: `Bearer ${apiKey}` } }),
       ]);
       const qData = await qRes.json();
@@ -253,7 +258,9 @@ export default function ProfilePage() {
       setProfile(pData);
       setMode((m) => m ?? (pData.human_short ? "hub" : "form"));
     } catch (e: any) {
-      setError(e.message);
+      // soft = background enrichment (post-submit) — a transient miss there
+      // must never read as a failure of work already stored
+      if (!opts?.soft) setError(e.message);
     } finally {
       setLoaded(true);
     }
@@ -314,9 +321,33 @@ export default function ProfilePage() {
         return;
       }
       if (!res.ok) throw new Error(data.error ?? "submission failed");
-      await loadAll();
+      // The respond payload already carries the frozen result — render the hub
+      // from it directly instead of gating stored results behind a refetch
+      // whose transient failure used to read as a failed submission. The
+      // delta is the same pure function the server runs, so it needs no
+      // round-trip either.
+      const stored: StoredResult = {
+        result_id: data.result_id,
+        source: "human_short",
+        approved: data.approved ?? true,
+        approved_at: data.approved_at ?? null,
+        created_at: new Date().toISOString(),
+        result: data.result,
+      };
+      setProfile((p) => {
+        const base: PairProfileView =
+          p ?? { pair_id: pairId!, agent_deep: null, human_short: null, delta: null };
+        return {
+          ...base,
+          human_short: stored,
+          delta: base.agent_deep ? compareProfiles(base.agent_deep.result, data.result) : null,
+        };
+      });
       setMode("hub");
       window.scrollTo({ top: 0 });
+      // background refresh for anything server-side (published_card_id etc.);
+      // its failure must not alarm — the submission is already stored & shown
+      loadAll({ soft: true }).catch(() => {});
     } catch (e: any) {
       setError(e.message);
     } finally {
