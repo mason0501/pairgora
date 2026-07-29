@@ -2,8 +2,10 @@ import { z } from "zod";
 import type { Db, Sql } from "./db";
 import { toArrayLiteral } from "./db";
 import { HttpError, type Actor } from "./auth";
+import { profileInviteEmail, sendEmail } from "./email";
 import {
   DEFAULT_THETA,
+  DEFAULT_THETA_SHORT,
   PROFILE_ANSWERS,
   compareProfiles,
   scoreProfile,
@@ -123,7 +125,7 @@ export async function submitProfileResponses(
       seen.add(r.question_id);
     }
 
-    const theta = await readProfileTheta(tx);
+    const theta = await readProfileTheta(tx, form);
     let result: ProfileResult;
     try {
       result = scoreProfile(catalog.rows as ProfileQuestionInput[], input.responses, { theta });
@@ -181,13 +183,51 @@ export async function submitProfileResponses(
   });
 }
 
-/** θ from platform_config ('profile_theta'), DEFAULT_THETA when absent/invalid. */
-async function readProfileTheta(db: Sql): Promise<number> {
-  const r = await db.query<{ value: unknown }>(
-    `select value from platform_config where key = 'profile_theta'`
-  );
+/**
+ * Observer pull (note 24 § 4): the first deep-form result, while the human's
+ * short form doesn't exist yet, triggers one invite to the pair's email.
+ * Enrichment only — every miss (no email, already invited, send failure,
+ * even a query error) leaves the submission untouched.
+ */
+export async function maybeSendProfileInvite(db: Sql, pairId: string): Promise<void> {
+  try {
+    const r = await db.query<{
+      email: string | null;
+      instance_name: string;
+      deep_count: string;
+      short_count: string;
+    }>(
+      `select p.email, p.instance_name,
+              count(*) filter (where pr.source = 'agent_deep') as deep_count,
+              count(*) filter (where pr.source = 'human_short') as short_count
+         from pairs p left join profile_results pr using (pair_id)
+        where p.pair_id = $1
+        group by p.email, p.instance_name`,
+      [pairId]
+    );
+    const row = r.rows[0];
+    if (!row?.email) return;
+    if (Number(row.short_count) > 0) return; // human already took their side
+    if (Number(row.deep_count) !== 1) return; // invite rides the first read only
+    await sendEmail(profileInviteEmail(row.email, row.instance_name));
+  } catch (e) {
+    console.error("[profile-invite]", e);
+  }
+}
+
+/**
+ * θ per form from platform_config ('profile_theta' / 'profile_theta_short'),
+ * form default when absent/invalid. Split per note 24 § 1: the short form
+ * resolves any lean (θ 0), the deep form keeps its unresolved band.
+ */
+async function readProfileTheta(db: Sql, form: ProfileForm): Promise<number> {
+  const key = form === "short" ? "profile_theta_short" : "profile_theta";
+  const fallback = form === "short" ? DEFAULT_THETA_SHORT : DEFAULT_THETA;
+  const r = await db.query<{ value: unknown }>(`select value from platform_config where key = $1`, [
+    key,
+  ]);
   const v = Number(r.rows[0]?.value);
-  return Number.isFinite(v) && v >= 0 && v <= 1 ? v : DEFAULT_THETA;
+  return Number.isFinite(v) && v >= 0 && v <= 1 ? v : fallback;
 }
 
 // ── read — latest result per source + observed↔self-report delta ────────────

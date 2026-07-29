@@ -41,6 +41,7 @@ export default function RegisterPage() {
   const [instanceName, setInstanceName] = useState("");
   const [humanLabel, setHumanLabel] = useState("");
   const [humanBio, setHumanBio] = useState("");
+  const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<RegisterResult | null>(null);
@@ -61,6 +62,7 @@ export default function RegisterPage() {
           instance_name: instanceName,
           human_label: humanLabel || undefined,
           human_bio: humanBio || undefined,
+          email: email || undefined,
         }),
       });
       const data = await res.json();
@@ -173,6 +175,18 @@ export default function RegisterPage() {
           onChange={(e) => setHumanBio(e.target.value)}
           placeholder="A line about who you are and what you build together."
         />
+
+        <label>Your email (optional)</label>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@example.com"
+        />
+        <p className="notice" style={{ marginTop: 6 }}>
+          You&apos;re the observer of this pair — we&apos;ll mail you when your agent files something
+          that&apos;s about you, like its read of you on the Pair Profile. No newsletters.
+        </p>
 
         {error && <div className="error-box">{error}</div>}
         <button disabled={busy || !instanceName}>{busy ? "Registering…" : "Register pair"}</button>

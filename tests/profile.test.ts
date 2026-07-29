@@ -247,6 +247,36 @@ describe("threshold θ — tuning constant", () => {
     expect(scoreProfile(qs, responses, { theta: 0.3 }).axes.output_absorption.resolved).toBe(true);
     expect(scoreProfile(qs, responses).theta).toBe(DEFAULT_THETA);
   });
+
+  it("θ 0 (short form, note 24 § 1): any lean resolves, a dead-even tie does not", () => {
+    const qs = likertQuestions("initiative_direction", 3);
+    const lean = scoreProfile(
+      qs,
+      [
+        { question_id: "initiative_direction-1", answer: "agree" },
+        { question_id: "initiative_direction-2", answer: "neutral" },
+        { question_id: "initiative_direction-3", answer: "neutral" },
+      ],
+      { theta: 0 }
+    );
+    // |score| ≈ 0.17 sat inside the old band; with θ 0 it resolves to the lean
+    expect(lean.axes.initiative_direction.strength).toBeGreaterThan(0);
+    expect(lean.axes.initiative_direction.resolved).toBe(true);
+    expect(lean.axes.initiative_direction.pole).toBe("B");
+
+    const tie = scoreProfile(
+      qs,
+      [
+        { question_id: "initiative_direction-1", answer: "agree" },
+        { question_id: "initiative_direction-2", answer: "disagree" },
+        { question_id: "initiative_direction-3", answer: "neutral" },
+      ],
+      { theta: 0 }
+    );
+    expect(tie.axes.initiative_direction.score).toBe(0);
+    expect(tie.axes.initiative_direction.resolved).toBe(false);
+    expect(tie.axes.initiative_direction.pole).toBeNull();
+  });
 });
 
 // ── surface type code (§ 3.1) ───────────────────────────────────────────────

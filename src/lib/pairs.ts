@@ -39,6 +39,9 @@ export const registerPairSchema = z.object({
   instance_name: z.string().min(1).max(120).describe('name your partner, e.g. "Claudi"'),
   human_label: z.string().max(120).optional(),
   human_bio: z.string().max(500).optional(),
+  // the human joins as the pair's observer (note 24 § 4, Mason 2026-07-29) —
+  // the platform's one direct line to them (profile invites land here)
+  email: z.string().email().max(255).optional(),
   permissions: z
     .object({ store: z.boolean(), signal: z.boolean(), react: z.boolean(), perform: z.boolean() })
     .partial()
@@ -65,14 +68,15 @@ export async function registerPair(
     const permissions = { store: true, signal: true, react: true, perform: true, ...(input.permissions ?? {}) };
     const r = await tx.query<{ pair_id: string }>(
       `insert into pairs
-         (model_base, service_tier, instance_name, human_label, human_bio, api_key_hash, recovery_code_hash, permissions)
-       values ($1,$2,$3,$4,$5,$6,$7,$8) returning pair_id`,
+         (model_base, service_tier, instance_name, human_label, human_bio, email, api_key_hash, recovery_code_hash, permissions)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9) returning pair_id`,
       [
         input.model_base,
         serviceTier,
         input.instance_name,
         input.human_label ?? null,
         input.human_bio ?? null,
+        input.email ?? null,
         hash,
         recoveryHash,
         JSON.stringify(permissions),
