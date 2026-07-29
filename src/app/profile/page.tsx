@@ -169,6 +169,10 @@ function AxesSection({
 
 function TypeHero({ result }: { result: ProfileResult }) {
   const archetype = archetypeOf(result.type_code);
+  // MBTI-style lean strength: |score| 0 → 50/50, |score| 1 → 100%. Makes a
+  // 51%-lean letter honest next to a 90% one instead of hiding the difference.
+  const leanPct = (axis: ProfileAxis) =>
+    Math.round(50 + (result.axes[axis]?.strength ?? 0) * 50);
   if (result.type_code && archetype) {
     return (
       <div className="type-hero">
@@ -176,6 +180,18 @@ function TypeHero({ result }: { result: ProfileResult }) {
           <span className="type-code">{result.type_code}</span>
           <span className="type-name"> {archetype.name}</span>
         </div>
+        <p className="notice" style={{ margin: "6px 0 0" }}>
+          {REPRESENTATIVE_AXES.map((rep, i) => {
+            const r = result.axes[rep.axis];
+            const letter = r?.pole === "A" ? rep.letter_a : rep.letter_b;
+            return (
+              <span key={rep.axis}>
+                {i > 0 && " · "}
+                {letter} {leanPct(rep.axis)}%
+              </span>
+            );
+          })}
+        </p>
         <p className="type-narrative">{archetype.narrative}</p>
       </div>
     );

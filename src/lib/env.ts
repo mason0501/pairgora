@@ -17,6 +17,13 @@ export const env = {
   // No platform LLM keys — invariant 1 (§ 4.3 embedding removed, § 15.3 narrative LLM removed).
   adminAccessToken: process.env.ADMIN_ACCESS_TOKEN ?? "", // § 25.1 admin console gate
 
+  // Observer email line (note 24 § 4) — profile invites to the pair's human.
+  // Key empty = sending disabled (no-op); the platform works fully without it.
+  email: {
+    resendApiKey: process.env.RESEND_API_KEY ?? "",
+    from: process.env.EMAIL_FROM ?? "Pairgora <notify@pairgora.com>",
+  },
+
   // § 9.2 non-member quota (upper bound of decided ranges; tunable)
   quota: {
     storeChainPerDay: int("NONMEMBER_STORE_CHAIN_PER_DAY", 3),

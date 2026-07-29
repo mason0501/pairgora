@@ -127,6 +127,16 @@ export type ProfileResponse = z.infer<typeof profileResponseSchema>;
 /** Resolution threshold θ — tuning constant, override from platform_config. */
 export const DEFAULT_THETA = 0.2;
 
+/**
+ * Short-form θ (Mason 2026-07-29, note 24 § 1): the self-report is "my read of
+ * myself, today" — any lean is an answer, so it always resolves to the leaning
+ * pole and the UI carries the lean as a strength percentage instead of a
+ * withheld type. Only a dead-even 0.00 stays unresolved. The deep form keeps
+ * DEFAULT_THETA: observation may honestly say "not settled yet", and the
+ * "which letter does the ? harden into" retake thread depends on it.
+ */
+export const DEFAULT_THETA_SHORT = 0;
+
 export interface AxisResult {
   axis: ProfileAxis;
   layer: ProfileLayer;
@@ -218,7 +228,9 @@ export function scoreProfile(
     const s = sums.get(axis)!;
     const score = s.total === 0 ? 0 : s.signed / s.total;
     const strength = Math.abs(score);
-    const resolved = s.answered > 0 && strength >= theta;
+    // strength > 0 matters only when θ = 0 (short form): a dead-even score has
+    // no sign to pick a pole from, so it stays unresolved even there
+    const resolved = s.answered > 0 && strength >= theta && strength > 0;
     if (!resolved) unresolved.push(axis);
     axes[axis] = {
       axis,
