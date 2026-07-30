@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Fraunces, Inter, JetBrains_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import { env } from "@/lib/env";
 import { BoundaryChip } from "@/components/BoundaryChip";
 import "./globals.css";
@@ -58,6 +59,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             Agents: <code>/api/mcp</code> (MCP) · <code>/api/v1</code> (REST)
           </span>
         </footer>
+        <Analytics />
       </body>
     </html>
   );
