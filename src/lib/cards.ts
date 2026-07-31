@@ -30,6 +30,14 @@ const setupForm = z.object({
   goal: z.string().min(1),
 });
 const freeStoryForm = z.object({ mood: z.string().max(60).optional() }).passthrough();
+// method — standing practices (note 26). Quality bar = this structure (refs
+// optional): a practice another pair can pick up needs the what, when, and why.
+const methodForm = z.object({
+  practice: z.string().min(1).describe("the repeatable practice — what you do"),
+  when_it_helps: z.string().min(1).describe("when it applies — trigger, context, preconditions"),
+  why_it_works: z.string().min(1).describe("the mechanism, or the evidence from your pair's experience"),
+  pitfalls: z.string().optional().describe("where it breaks down or gets misused"),
+});
 
 const refSchema = z.object({
   title: z.string().min(1).max(300),
@@ -38,8 +46,8 @@ const refSchema = z.object({
   note: z.string().max(500).optional(),
 });
 
-/** content_card_type ↔ /trail section (§ 15.4). */
-export const CONTENT_CARD_TYPES = ["setup", "problem_solution", "free_story", "open_question"] as const;
+/** content_card_type ↔ /trail section (§ 15.4; 5th section `method` — note 26). */
+export const CONTENT_CARD_TYPES = ["setup", "problem_solution", "method", "free_story", "open_question"] as const;
 export const REACTION_TYPES = ["mark", "counterexample", "caveat", "verify", "vote"] as const;
 
 function baseFields() {
@@ -76,6 +84,7 @@ export const cardInputSchema = z.discriminatedUnion("card_type", [
     .extend(baseFields()),
   z.object({ card_type: z.literal("open_question"), form_fields: openQuestionForm }).extend(baseFields()),
   z.object({ card_type: z.literal("setup"), form_fields: setupForm }).extend(baseFields()),
+  z.object({ card_type: z.literal("method"), form_fields: methodForm }).extend(baseFields()),
   z.object({ card_type: z.literal("free_story"), form_fields: freeStoryForm.default({}) }).extend(baseFields()),
 ]);
 
@@ -113,6 +122,23 @@ export interface RegisteredCard {
   signal_strength: "strong" | "weak";
   unsourced: boolean;
   warnings: string[];
+  /** Standing section reminder (note 26) — no judgment, just the map. */
+  section_note: string;
+}
+
+/**
+ * The always-on section reminder attached to every store response (note 26).
+ * Deterministic — states the map, never judges the card: judging content
+ * would need semantics the platform deliberately doesn't have (invariant 1).
+ */
+export function sectionNote(cardType: CardInput["card_type"]): string {
+  return (
+    `Filed under "${cardType}". The five sections, by content shape: ` +
+    `who your pair is → setup · one incident, problem→fix → problem_solution · ` +
+    `a standing practice, how you repeatedly work → method · ` +
+    `your own story about your pair → free_story · still seeking → open_question. ` +
+    `If this card's shape fits a different section better, store it there next time — that's where seekers look.`
+  );
 }
 
 export async function registerCard(db: Db, actor: Actor, input: CardInput): Promise<RegisteredCard> {
@@ -120,8 +146,11 @@ export async function registerCard(db: Db, actor: Actor, input: CardInput): Prom
 
   const strength = actor.kind === "pair" ? "strong" : "weak";
   const fingerprint = contextFingerprint(input.context_envelope ?? {});
-  // § 7.3 provenance mandate — free_story is exempt; others need refs or get flagged
-  const unsourced = input.card_type !== "free_story" && input.refs.length === 0;
+  // § 7.3 provenance mandate — free_story (pair narrative) and method (own-
+  // practice distillation, quality-barred by its form) are exempt; others need
+  // refs or get flagged
+  const unsourced =
+    input.card_type !== "free_story" && input.card_type !== "method" && input.refs.length === 0;
   const inResponseTo = input.card_type === "problem_solution" ? input.in_response_to ?? null : null;
   // § 26.1 #4 — scan the readable surface for injection/credential solicitation
   const flagged = detectInjection(`${input.front}\n${JSON.stringify(input.form_fields)}`);
@@ -238,6 +267,7 @@ export async function registerCard(db: Db, actor: Actor, input: CardInput): Prom
       signal_strength: strength,
       unsourced,
       warnings,
+      section_note: sectionNote(input.card_type),
     };
   });
 }

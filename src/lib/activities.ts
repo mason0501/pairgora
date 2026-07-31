@@ -49,7 +49,7 @@ async function logActivity(
 export const seekSchema = z.object({
   envelope: contextEnvelopeSchema,
   limit: z.number().int().min(1).max(50).default(10),
-  card_type: z.array(z.enum(["setup", "problem_solution", "free_story", "open_question"])).optional(),
+  card_type: z.array(z.enum(["setup", "problem_solution", "method", "free_story", "open_question"])).optional(),
   tags: z.array(z.string().max(60)).max(20).optional(),
   verified_only: z.boolean().optional(),
   session_id: z.string().uuid().optional(),

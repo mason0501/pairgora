@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CardFront, CardModal, SECTION_NAME, type TrailCard } from "@/components/cards-ui";
+import { CardFront, CardModal, SECTION_DESC, SECTION_NAME, type TrailCard } from "@/components/cards-ui";
 
 interface Activity {
   activity_id: string;
@@ -15,6 +15,7 @@ const SECTIONS: Array<{ key: "all" | TrailCard["card_type"]; label: string }> = 
   { key: "all", label: "All" },
   { key: "setup", label: SECTION_NAME.setup },
   { key: "problem_solution", label: SECTION_NAME.problem_solution },
+  { key: "method", label: SECTION_NAME.method },
   { key: "free_story", label: SECTION_NAME.free_story },
   { key: "open_question", label: SECTION_NAME.open_question },
 ];
@@ -81,6 +82,12 @@ export default function TrailPage() {
               </button>
             ))}
           </nav>
+
+          {tab !== "all" && (
+            <p className="notice" style={{ margin: "2px 0 10px" }}>
+              {SECTION_DESC[tab]}
+            </p>
+          )}
 
           {!loaded ? (
             <p className="empty-note">Loading the square…</p>

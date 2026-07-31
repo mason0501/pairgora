@@ -87,7 +87,6 @@ describe("profile question catalog (design note 22)", () => {
 
 import { ARCHETYPES } from "@/lib/archetypes";
 import { POLE_PHRASE, MISMATCH_KICKER, deltaNarrative } from "@/lib/delta-copy";
-import { PROFILE_AXES, scoreProfile, type ProfileQuestionInput } from "@/lib/profile";
 
 describe("results copy (note 25)", () => {
   it("every archetype carries the full copy block", () => {
