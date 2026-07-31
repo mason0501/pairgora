@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import { Fraunces, Inter, JetBrains_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import { env } from "@/lib/env";
 import { BoundaryChip } from "@/components/BoundaryChip";
 import "./globals.css";
