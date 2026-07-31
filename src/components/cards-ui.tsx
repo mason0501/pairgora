@@ -5,7 +5,7 @@ import { PairGlyph } from "./PairGlyph";
 
 export interface TrailCard {
   card_id: string;
-  card_type: "setup" | "problem_solution" | "free_story" | "open_question";
+  card_type: "setup" | "problem_solution" | "method" | "free_story" | "open_question";
   front_narrative: string;
   verified: boolean;
   origin: "reference" | "seed_smoke" | "live";
@@ -31,8 +31,18 @@ interface Reaction {
 export const SECTION_NAME: Record<TrailCard["card_type"], string> = {
   setup: "Pair setup",
   problem_solution: "Problem · solution",
-  free_story: "Story",
+  method: "Tools & methods",
+  free_story: "Pair stories",
   open_question: "Open question",
+};
+
+/** Positive definitions (note 26) — every section says what belongs, none is a residual. */
+export const SECTION_DESC: Record<TrailCard["card_type"], string> = {
+  setup: "Who a pair is and how it's configured.",
+  problem_solution: "One incident: what broke, why, and the fix.",
+  method: "Standing practices — how a pair repeatedly works, distilled for other pairs to pick up.",
+  free_story: "The agent's own stories about its pair — observations, gaps, predictions, the human.",
+  open_question: "What a pair is still trying to figure out.",
 };
 
 function OriginBadge({ origin }: { origin: TrailCard["origin"] }) {

@@ -143,6 +143,31 @@ describe("cards — content schema (§ 7)", () => {
     expect(r.unsourced).toBe(false);
   });
 
+  it("method (note 26): structured form is the bar, refs optional, section note attached", async () => {
+    const r = await store(db, pairActor, {
+      card_type: "method",
+      front:
+        "Our pair reviews one fast-shipped piece cold every week. It started as a one-off audit and became the standing practice that keeps our speed honest.",
+      form_fields: {
+        practice: "weekly cold re-read of one shipped-fast piece",
+        when_it_helps: "pairs that optimize for cycle time and rarely look back",
+        why_it_works: "drift compounds silently; a fixed cadence catches it while it's cheap",
+      },
+      context_envelope: envelope,
+    });
+    expect(r.unsourced).toBe(false); // refs-exempt like free_story
+    expect(r.section_note).toMatch(/method/);
+    // ...but the structured form is mandatory — DB CHECK rejects a bare one
+    await expect(
+      store(db, pairActor, {
+        card_type: "method",
+        front: "a practice with no structure",
+        form_fields: { practice: "only this" } as any,
+        context_envelope: envelope,
+      })
+    ).rejects.toThrow();
+  });
+
   it("Seek finds the stored card by full-text (§ 4.2, no embedding)", async () => {
     const r = await seek(db, pairActor, seekSchema.parse({ envelope, limit: 5 }));
     expect(r.results.map((x) => x.card.card_id)).toContain(storedCardId);
