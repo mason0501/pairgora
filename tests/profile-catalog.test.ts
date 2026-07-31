@@ -82,3 +82,54 @@ describe("profile question catalog (design note 22)", () => {
     expect(self.type_code!.split("-")).toHaveLength(REPRESENTATIVE_AXES.length);
   });
 });
+
+// ── note 25 — results copy layer ────────────────────────────────────────────
+
+import { ARCHETYPES } from "@/lib/archetypes";
+import { POLE_PHRASE, MISMATCH_KICKER, deltaNarrative } from "@/lib/delta-copy";
+import { PROFILE_AXES, scoreProfile, type ProfileQuestionInput } from "@/lib/profile";
+
+describe("results copy (note 25)", () => {
+  it("every archetype carries the full copy block", () => {
+    expect(ARCHETYPES).toHaveLength(16);
+    for (const a of ARCHETYPES) {
+      expect(a.reads.length).toBeGreaterThan(100);
+      expect(a.thrives.length).toBeGreaterThanOrEqual(2);
+      expect(a.frays.length).toBeGreaterThanOrEqual(2);
+      expect(a.try_this.length).toBeGreaterThan(20);
+      expect(a.duos.length).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it("delta copy covers all 8 axes", () => {
+    for (const axis of PROFILE_AXES) {
+      expect(POLE_PHRASE[axis].A).toBeTruthy();
+      expect(POLE_PHRASE[axis].B).toBeTruthy();
+      expect(MISMATCH_KICKER[axis]).toBeTruthy();
+    }
+  });
+
+  it("deltaNarrative classifies mismatch / agree / open deterministically", () => {
+    const qs: ProfileQuestionInput[] = PROFILE_AXES.map((axis) => ({
+      question_id: `${axis}-1`,
+      axis,
+      pole: "B",
+      weight: 1,
+    }));
+    const observed = scoreProfile(qs, qs.map((q) => ({ question_id: q.question_id, answer: "agree" as const })));
+    const self = scoreProfile(
+      qs,
+      qs.map((q) => ({
+        question_id: q.question_id,
+        answer: (q.axis === "trust_rhythm" ? "disagree" : "agree") as "agree" | "disagree",
+      }))
+    );
+    const story = deltaNarrative(observed, self, "TestBot");
+    expect(story.mismatchCount).toBe(1);
+    expect(story.lines.find((l) => l.axis === "trust_rhythm")?.kind).toBe("mismatch");
+    expect(story.lines.filter((l) => l.kind === "agree")).toHaveLength(7);
+    expect(story.opener).toContain("TestBot");
+    // determinism
+    expect(deltaNarrative(observed, self, "TestBot")).toEqual(story);
+  });
+});

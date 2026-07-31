@@ -12,6 +12,7 @@ import {
   type ProfileResult,
 } from "@/lib/profile";
 import { archetypeOf } from "@/lib/archetypes";
+import { axisDisplayName, deltaNarrative, type DeltaLine } from "@/lib/delta-copy";
 
 /**
  * Pair Profile — human short form + results hub (design note 21).
@@ -191,6 +192,8 @@ function TypeHero({ result }: { result: ProfileResult }) {
               </span>
             );
           })}
+          {" · "}
+          <a href={`/profile/types/${result.type_code!.toLowerCase()}`}>full type page →</a>
         </p>
         <p className="type-narrative">{archetype.narrative}</p>
       </div>
@@ -598,18 +601,28 @@ export default function ProfilePage() {
             <span className="dot agent" /> your agent, from the logs
             <span className="dot human" style={{ marginLeft: 16 }} /> you, self-reported
           </p>
-          {profile.delta.mismatch_axes.length > 0 ? (
-            <p className="trail-hint" style={{ margin: "0 0 14px" }}>
-              On {profile.delta.mismatch_axes.length}{" "}
-              {profile.delta.mismatch_axes.length === 1 ? "axis" : "axes"} your agent sees you
-              differently than you see yourself. Not an error — that gap is usually where the best
-              conversations with your agent start.
-            </p>
-          ) : (
-            <p className="trail-hint" style={{ margin: "0 0 14px" }}>
-              No opposite-pole gaps — you and your agent currently read this pair the same way.
-            </p>
-          )}
+          {(() => {
+            // note 25 § 2 — deterministic story over the two results, no LLM
+            const story = deltaNarrative(agentDeep.result, humanShort.result);
+            const order: DeltaLine["kind"][] = ["mismatch", "deep_open", "short_open", "both_open", "agree"];
+            const lines = order.flatMap((k) => story.lines.filter((l) => l.kind === k));
+            return (
+              <div style={{ margin: "0 0 14px" }}>
+                <p className="trail-hint" style={{ margin: "0 0 12px" }}>
+                  {story.opener}
+                </p>
+                {lines.map((l) => (
+                  <p
+                    key={l.axis}
+                    className={l.kind === "agree" ? "notice" : "trail-hint"}
+                    style={{ margin: "0 0 8px" }}
+                  >
+                    <strong>{axisDisplayName(l.axis)}</strong> — {l.text}
+                  </p>
+                ))}
+              </div>
+            );
+          })()}
           <AxesSection
             human={humanShort.result}
             agent={agentDeep.result}
