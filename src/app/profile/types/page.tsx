@@ -45,8 +45,20 @@ export default function ProfileTypesPage() {
         {ARCHETYPES.map((a) => (
           <article className="type-card" key={a.code}>
             <div className="code">{a.code}</div>
-            <h3>{a.name}</h3>
+            <h3>
+              <a
+                href={`/profile/types/${a.code.toLowerCase()}`}
+                style={{ textDecoration: "none", color: "inherit" }}
+              >
+                {a.name}
+              </a>
+            </h3>
             <p>{a.narrative}</p>
+            <p style={{ margin: "8px 0 0" }}>
+              <a className="notice" href={`/profile/types/${a.code.toLowerCase()}`}>
+                read the full type →
+              </a>
+            </p>
           </article>
         ))}
       </div>
